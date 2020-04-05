@@ -7,13 +7,16 @@ const {
 const utils = require("./utils");
 const logger = require("./logger");
 
-async function runCycle(prevThreads, miliseconds) {
-  const currentThreads = transformPages(await fetchPages(miliseconds));
-  console.log("New Posts: " + calculateNewPosts(prevThreads, currentThreads));
-  console.log("New threads: " + getNewThreadIds(prevThreads, currentThreads).length);
-  console.log(getNewThreadIds(prevThreads, currentThreads));
-  return { ...currentThreads };
-}
+/**
+ * Cycle generator
+ *
+ * @async
+ * @generator
+ * @function runCycle
+ * @param {Object} prevThreads - Object with threads from previous cycle
+ * @param {number} miliseconds - time in ms to pass to {@link module:threads~fetchPages fetchPages}
+ * @return {Object} Object with threads from current cycle
+ */
 
 async function runCycle(prevThreads, miliseconds) {
   const currentThreads = transformPages(await fetchPages(miliseconds));
@@ -63,4 +66,4 @@ async function main(miliseconds, retryTimeOut) {
   }
 }
 
-main(10000, 5000);
+main(60000, 5000);
