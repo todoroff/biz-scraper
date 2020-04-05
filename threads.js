@@ -110,8 +110,25 @@ function calculateNewPosts(prevThreads, currentThreads) {
   );
 }
 
-async function getThreadDetails(threadId) {
-  return axios.get(`https://a.4cdn.org/biz/thread/${threadId}.json`);
+/**
+ * Fetch details for a specific thread.
+ *
+ * @async
+ * @function fetchThreadDetails
+ * @param {number} threadId - Thread ID
+ * @return {Promise<Object>}  Thread details
+ */
+
+async function fetchThreadDetails(threadId) {
+  try {
+    var details = (await axios.get(`https://a.4cdn.org/biz/thread/${threadId}.json`))
+      .data;
+  } catch (e) {
+    throw new Error(
+      `${e.response.status}: ${e.response.statusText} \n url: ${e.response.config.url}`
+    );
+  }
+  return details;
 }
 
 module.exports = {
@@ -120,4 +137,5 @@ module.exports = {
   getNewThreadIds,
   calculateNewReplies,
   calculateNewPosts,
+  fetchThreadDetails,
 };

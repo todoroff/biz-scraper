@@ -3,12 +3,15 @@ const {
   fetchPages,
   calculateNewPosts,
   getNewThreadIds,
+  fetchThreadDetails,
 } = require("./threads");
 const utils = require("./utils");
 const logger = require("./logger");
 
 /**
- * Cycle generator
+ * Single cycle:
+ * - fetch threads
+ * - calculate new posts
  *
  * @async
  * @generator
@@ -21,8 +24,15 @@ const logger = require("./logger");
 async function runCycle(prevThreads, miliseconds) {
   const currentThreads = transformPages(await fetchPages(miliseconds));
   console.log("New Posts: " + calculateNewPosts(prevThreads, currentThreads));
-  console.log("New threads: " + getNewThreadIds(prevThreads, currentThreads).length);
-  console.log(getNewThreadIds(prevThreads, currentThreads));
+  const newThreads = getNewThreadIds(prevThreads, currentThreads);
+  console.log("New threads: " + newThreads.length);
+  console.log(newThreads);
+  if (newThreads.length > 0) {
+    for (thread of newThreads) {
+      console.log(await fetchThreadDetails(thread));
+    }
+  }
+
   return { ...currentThreads };
 }
 
