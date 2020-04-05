@@ -54,6 +54,15 @@ async function* start(miliseconds) {
   }
 }
 
+/**
+ * Main process
+ *
+ * @async
+ * @function main
+ * @param {number} miliseconds - How often to run a cycle in ms
+ * @param {number} retryTimeOut - Wait time in ms before retrying after an error
+ */
+
 async function main(miliseconds, retryTimeOut) {
   try {
     for await (cycle of start(miliseconds)) {
