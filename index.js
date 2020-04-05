@@ -5,28 +5,7 @@ const {
   getNewThreadIds,
 } = require("./threads");
 const utils = require("./utils");
-const path = require("path");
-const winston = require("winston");
-
-const logger = winston.createLogger({
-  level: "info",
-  format: winston.format.json(),
-  transports: [
-    new winston.transports.File({
-      filename: path.resolve("logs", "error.log"),
-      level: "error",
-    }),
-    new winston.transports.File({ filename: path.resolve("logs", "combined.log") }),
-  ],
-});
-
-if (process.env.NODE_ENV !== "production") {
-  logger.add(
-    new winston.transports.Console({
-      format: winston.format.simple(),
-    })
-  );
-}
+const logger = require("./logger");
 
 async function runCycle(prevThreads, miliseconds) {
   const currentThreads = transformPages(await fetchPages(miliseconds));
