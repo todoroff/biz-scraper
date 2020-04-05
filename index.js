@@ -15,7 +15,7 @@ const logger = require("./logger");
  * @function runCycle
  * @param {Object} prevThreads - Object with threads from previous cycle
  * @param {number} miliseconds - time in ms to pass to {@link module:threads~fetchPages fetchPages}
- * @return {Object} Object with threads from current cycle
+ * @return {Promise.<Object>} Object with threads from current cycle
  */
 
 async function runCycle(prevThreads, miliseconds) {
