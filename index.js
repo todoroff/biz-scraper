@@ -5,6 +5,36 @@ const {
   getNewThreadIds,
 } = require("./threads");
 const utils = require("./utils");
+const path = require("path");
+const winston = require("winston");
+
+const logger = winston.createLogger({
+  level: "info",
+  format: winston.format.json(),
+  transports: [
+    new winston.transports.File({
+      filename: path.resolve("logs", "error.log"),
+      level: "error",
+    }),
+    new winston.transports.File({ filename: path.resolve("logs", "combined.log") }),
+  ],
+});
+
+if (process.env.NODE_ENV !== "production") {
+  logger.add(
+    new winston.transports.Console({
+      format: winston.format.simple(),
+    })
+  );
+}
+
+async function runCycle(prevThreads, miliseconds) {
+  const currentThreads = transformPages(await fetchPages(miliseconds));
+  console.log("New Posts: " + calculateNewPosts(prevThreads, currentThreads));
+  console.log("New threads: " + getNewThreadIds(prevThreads, currentThreads).length);
+  console.log(getNewThreadIds(prevThreads, currentThreads));
+  return { ...currentThreads };
+}
 
 async function runCycle(prevThreads, miliseconds) {
   const currentThreads = transformPages(await fetchPages(miliseconds));
@@ -30,14 +60,12 @@ async function* start(miliseconds) {
   var lastCycleStart = Date.now();
 
   while (true) {
-    console.log("start cycle");
     await utils.wait(miliseconds - (Date.now() - lastCycleStart));
     lastCycleStart = Date.now();
-
     try {
       prevThreads = await runCycle(prevThreads, miliseconds);
     } catch (e) {
-      console.log(e);
+      logger.error({ message: e.message, stack: e.stack });
     }
 
     yield;
@@ -49,8 +77,8 @@ async function main(miliseconds, retryTimeOut) {
     for await (cycle of start(miliseconds)) {
     }
   } catch (e) {
-    console.log(e);
-    console.log(`Retry in ${retryTimeOut}ms`);
+    logger.error({ message: e.message, stack: e.stack });
+    logger.info(`Retry in ${retryTimeOut}ms`);
     await utils.wait(retryTimeOut);
     return main(miliseconds, retryTimeOut);
   }

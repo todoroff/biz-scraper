@@ -21,8 +21,14 @@ async function fetchPages(ms) {
       "If-Modified-Since": new Date(Date.now() - ms).toUTCString(),
     },
   };
-  const pages = (await axios.get("https://a.4cdn.org/biz/threads.json", config))
-    .data;
+  try {
+    var pages = (await axios.get("https://a.4cdn.org/biz/threads.json", config))
+      .data;
+  } catch (e) {
+    throw new Error(
+      `${e.response.status}: ${e.response.statusText} \n url: ${e.response.config.url}`
+    );
+  }
   return pages;
 }
 
