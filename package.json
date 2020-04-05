@@ -1,0 +1,15 @@
+{
+  "name": "stateofbiz-collector",
+  "version": "0.1.0",
+  "private": true,
+  "description": "/biz/ data collector",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "express": "^4.17.1"
+  }
+}
