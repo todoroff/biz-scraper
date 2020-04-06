@@ -15,7 +15,7 @@ const axios = require("axios");
  * @return {Promise<Object[]>}  A  list of pages
  */
 
-async function fetchPages(ms) {
+async function fetchPages(ms = process.env.CYCLE_TIME) {
   const config = {
     headers: {
       "If-Modified-Since": new Date(Date.now() - ms).toUTCString(),
