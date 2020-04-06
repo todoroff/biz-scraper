@@ -9,7 +9,7 @@ const utils = require("./utils");
 const logger = require("./logger");
 
 /**
- * Single cycle:
+ * Run a single cycle:
  * - fetch threads
  * - calculate new posts
  *
@@ -38,6 +38,7 @@ async function runCycle(prevThreads, miliseconds) {
 
 /**
  * Cycle generator
+ * Initialize values and start running cycles
  *
  * @async
  * @generator
@@ -47,6 +48,7 @@ async function runCycle(prevThreads, miliseconds) {
  */
 
 async function* start(miliseconds) {
+  // init values
   const initThreads = transformPages(await fetchPages(miliseconds));
   var prevThreads = initThreads;
   var lastCycleStart = Date.now();
@@ -55,9 +57,13 @@ async function* start(miliseconds) {
     await utils.wait(miliseconds - (Date.now() - lastCycleStart));
     lastCycleStart = Date.now();
     try {
-      prevThreads = await runCycle(prevThreads, miliseconds);
+      let currentThreads = await runCycle(prevThreads, miliseconds);
+      prevThreads = currentThreads;
     } catch (e) {
-      logger.error({ message: e.message, stack: e.stack });
+      utils.handleError(e);
+      // reset lastCycleStart, so we wait only 5000 instead of given miliseconds
+      // before the next cycle is run
+      lastCycleStart = Date.now() - (miliseconds - 5000);
     }
 
     yield;
@@ -78,11 +84,11 @@ async function main(miliseconds, retryTimeOut) {
     for await (cycle of start(miliseconds)) {
     }
   } catch (e) {
-    logger.error({ message: e.message, stack: e.stack });
+    utils.handleError(e);
     logger.info(`Retry in ${retryTimeOut}ms`);
     await utils.wait(retryTimeOut);
     return main(miliseconds, retryTimeOut);
   }
 }
 
-main(60000, 5000);
+main(10000, 5000);

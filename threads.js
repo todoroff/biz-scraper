@@ -21,14 +21,7 @@ async function fetchPages(ms) {
       "If-Modified-Since": new Date(Date.now() - ms).toUTCString(),
     },
   };
-  try {
-    var pages = (await axios.get("https://a.4cdn.org/biz/threads.json", config))
-      .data;
-  } catch (e) {
-    throw new Error(
-      `${e.response.status}: ${e.response.statusText} \n url: ${e.response.config.url}`
-    );
-  }
+  var pages = (await axios.get("https://a.4cdn.org/biz/threads.json", config)).data;
   return pages;
 }
 
@@ -120,14 +113,8 @@ function calculateNewPosts(prevThreads, currentThreads) {
  */
 
 async function fetchThreadDetails(threadId) {
-  try {
-    var details = (await axios.get(`https://a.4cdn.org/biz/thread/${threadId}.json`))
-      .data;
-  } catch (e) {
-    throw new Error(
-      `${e.response.status}: ${e.response.statusText} \n url: ${e.response.config.url}`
-    );
-  }
+  var details = (await axios.get(`https://a.4cdn.org/biz/thread/${threadId}.json`))
+    .data;
   return details;
 }
 
