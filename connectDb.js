@@ -1,3 +1,5 @@
+"use strict";
+
 const mongoose = require("mongoose");
 const logger = require("./logger");
 const db = process.env.MONGO_URI;

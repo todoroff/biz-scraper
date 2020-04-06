@@ -1,3 +1,5 @@
+"use strict";
+
 require("dotenv").config();
 const {
   transformPages,
@@ -30,6 +32,7 @@ async function collectData(prevThreads) {
   const currentThreads = transformPages(await fetchPages());
   const newReplies = calculateNewReplies(prevThreads, currentThreads);
   const newThreads = getNewThreadIds(prevThreads, currentThreads);
+  let newThreadImages = [];
   if (newThreads.length > 0) {
     for (thread of newThreads) {
       console.log((await fetchThreadDetails(thread)).posts[0].tim);
@@ -91,7 +94,6 @@ async function* nextCycle() {
  * Start running the cycle
  *
  * @async
- * @generator
  * @function start
  * @return {Object} Iterator
  */
