@@ -24,7 +24,6 @@ function handleError(e) {
     logger.warn({
       message: e.message,
       url: e.response.config.url,
-      stack: e.stack,
     });
   } else {
     logger.error({ message: e.message, stack: e.stack });
