@@ -20,12 +20,11 @@ require("./connectDb")();
  * @generator
  * @function collectData
  * @param {Object} prevThreads - Object with threads from previous cycle
- * @param {number} miliseconds - time in ms to pass to {@link module:threads~fetchPages fetchPages}
  * @return {Promise.<Object>} Object with threads from current cycle
  */
 
-async function collectData(prevThreads, miliseconds) {
-  const currentThreads = transformPages(await fetchPages(miliseconds));
+async function collectData(prevThreads) {
+  const currentThreads = transformPages(await fetchPages());
   console.log("New Posts: " + calculateNewPosts(prevThreads, currentThreads));
   const newThreads = getNewThreadIds(prevThreads, currentThreads);
   console.log("New threads: " + newThreads.length);
@@ -46,27 +45,26 @@ async function collectData(prevThreads, miliseconds) {
  * @async
  * @generator
  * @function nextCycle
- * @param {number} miliseconds - How often to run a cycle in ms
  * @return {Object} Iterator
  */
 
-async function* nextCycle(miliseconds) {
+async function* nextCycle() {
   // init values
-  const initThreads = transformPages(await fetchPages(miliseconds));
+  const initThreads = transformPages(await fetchPages());
   var prevThreads = initThreads;
   var lastCycleStart = Date.now();
 
   while (true) {
-    await utils.wait(miliseconds - (Date.now() - lastCycleStart));
+    await utils.wait(process.env.CYCLE_TIME - (Date.now() - lastCycleStart));
     lastCycleStart = Date.now();
     try {
-      let currentThreads = await collectData(prevThreads, miliseconds);
+      let currentThreads = await collectData(prevThreads);
       prevThreads = currentThreads;
     } catch (e) {
       utils.handleError(e);
       // reset lastCycleStart, so we wait only 5000 instead of given miliseconds
       // before the next cycle is run
-      lastCycleStart = Date.now() - (miliseconds - 5000);
+      lastCycleStart = Date.now() - (process.env.CYCLE_TIME - 5000);
     }
 
     yield;
@@ -80,19 +78,18 @@ async function* nextCycle(miliseconds) {
  * @async
  * @generator
  * @function start
- * @param {number} miliseconds - How often to run a cycle in ms
  * @return {Object} Iterator
  */
 
-async function start(miliseconds, retryTimeOut) {
+async function start(retryTimeOut = 5000) {
   try {
-    for await (cycle of nextCycle(miliseconds)) {
+    for await (cycle of nextCycle()) {
     }
   } catch (e) {
     utils.handleError(e);
     logger.info({ message: `Retry in ${retryTimeOut}ms` });
     await utils.wait(retryTimeOut);
-    return start(miliseconds, retryTimeOut);
+    return start(retryTimeOut);
   }
 }
 
@@ -101,13 +98,12 @@ async function start(miliseconds, retryTimeOut) {
  *
  * @async
  * @function main
- * @param {number} miliseconds - How often to run a cycle in ms
  * @param {number} retryTimeOut - Wait time in ms before retrying after an error
  */
 
-async function main(miliseconds = 60000, retryTimeOut = 5000) {
+async function main() {
   logger.info({ message: "Start process" });
-  start(miliseconds, retryTimeOut);
+  start();
 
   process.on("SIGINT", function () {
     mongoose.connection.close(function () {
