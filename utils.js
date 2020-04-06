@@ -14,9 +14,7 @@
 
 function wait(miliseconds) {
   return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      resolve();
-    }, Math.max(miliseconds, 0));
+    setTimeout(resolve, Math.max(miliseconds, 0));
   });
 }
 
