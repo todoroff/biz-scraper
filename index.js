@@ -1,3 +1,4 @@
+require("dotenv").config();
 const {
   transformPages,
   fetchPages,
@@ -7,6 +8,8 @@ const {
 } = require("./threads");
 const utils = require("./utils");
 const logger = require("./logger");
+const mongoose = require("mongoose");
+require("./connectDb")();
 
 /**
  * Run a single cycle:
@@ -29,7 +32,7 @@ async function runCycle(prevThreads, miliseconds) {
   console.log(newThreads);
   if (newThreads.length > 0) {
     for (thread of newThreads) {
-      console.log(await fetchThreadDetails(thread));
+      console.log((await fetchThreadDetails(thread)).posts[0].tim);
     }
   }
 
@@ -85,10 +88,22 @@ async function main(miliseconds, retryTimeOut) {
     }
   } catch (e) {
     utils.handleError(e);
-    logger.info(`Retry in ${retryTimeOut}ms`);
+    logger.info({ message: `Retry in ${retryTimeOut}ms` });
     await utils.wait(retryTimeOut);
     return main(miliseconds, retryTimeOut);
   }
 }
 
-main(10000, 5000);
+logger.info({ message: "Start process" });
+mongoose.connection.on("connected", function () {
+  logger.info("MongoDB connected...");
+  main(60000, 5000);
+});
+
+process.on("SIGINT", function () {
+  mongoose.connection.close(function () {
+    logger.info({ message: "Disconnect DB" });
+    logger.info({ message: "End process" });
+    process.exit(0);
+  });
+});
