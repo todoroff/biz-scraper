@@ -2,17 +2,19 @@ require("dotenv").config();
 const {
   transformPages,
   fetchPages,
-  calculateNewPosts,
+  calculateNewReplies,
   getNewThreadIds,
   fetchThreadDetails,
 } = require("./threads");
 const utils = require("./utils");
 const logger = require("./logger");
 const mongoose = require("mongoose");
-require("./connectDb")();
+const connectDb = require("./connectDb");
+
+const PostStatistic = require("./models/PostStatistic");
 
 /**
- * collectData:
+ * Collect /biz/ data and save to DB
  * - fetch threads
  * - calculate new posts
  *
@@ -24,18 +26,31 @@ require("./connectDb")();
  */
 
 async function collectData(prevThreads) {
+  var result = {};
   const currentThreads = transformPages(await fetchPages());
-  console.log("New Posts: " + calculateNewPosts(prevThreads, currentThreads));
+  const newReplies = calculateNewReplies(prevThreads, currentThreads);
   const newThreads = getNewThreadIds(prevThreads, currentThreads);
-  console.log("New threads: " + newThreads.length);
-  console.log(newThreads);
   if (newThreads.length > 0) {
     for (thread of newThreads) {
       console.log((await fetchThreadDetails(thread)).posts[0].tim);
     }
   }
+  const postStat = await new PostStatistic({
+    newThreads: newThreads.length,
+    newReplies,
+  }).save();
 
-  return { ...currentThreads };
+  Object.assign(
+    result,
+    { currentThreads: { ...currentThreads } },
+    { stats: postStat }
+  );
+
+  console.log("New Replies: " + newReplies);
+  console.log("New threads: " + newThreads.length);
+  console.log(newThreads);
+
+  return result;
 }
 
 /**
@@ -58,7 +73,7 @@ async function* nextCycle() {
     await utils.wait(process.env.CYCLE_TIME - (Date.now() - lastCycleStart));
     lastCycleStart = Date.now();
     try {
-      let currentThreads = await collectData(prevThreads);
+      let currentThreads = (await collectData(prevThreads)).currentThreads;
       prevThreads = currentThreads;
     } catch (e) {
       utils.handleError(e);
@@ -103,11 +118,13 @@ async function start(retryTimeOut = 5000) {
 
 async function main() {
   logger.info({ message: "Start process" });
+  await connectDb();
+  logger.info("MongoDB Connected");
   start();
 
   process.on("SIGINT", function () {
     mongoose.connection.close(function () {
-      logger.info({ message: "Disconnect DB" });
+      logger.info({ message: "Disconnected DB" });
       logger.info({ message: "End process" });
       process.exit(0);
     });
