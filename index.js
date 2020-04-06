@@ -12,19 +12,19 @@ const mongoose = require("mongoose");
 require("./connectDb")();
 
 /**
- * Run a single cycle:
+ * collectData:
  * - fetch threads
  * - calculate new posts
  *
  * @async
  * @generator
- * @function runCycle
+ * @function collectData
  * @param {Object} prevThreads - Object with threads from previous cycle
  * @param {number} miliseconds - time in ms to pass to {@link module:threads~fetchPages fetchPages}
  * @return {Promise.<Object>} Object with threads from current cycle
  */
 
-async function runCycle(prevThreads, miliseconds) {
+async function collectData(prevThreads, miliseconds) {
   const currentThreads = transformPages(await fetchPages(miliseconds));
   console.log("New Posts: " + calculateNewPosts(prevThreads, currentThreads));
   const newThreads = getNewThreadIds(prevThreads, currentThreads);
@@ -45,12 +45,12 @@ async function runCycle(prevThreads, miliseconds) {
  *
  * @async
  * @generator
- * @function start
+ * @function nextCycle
  * @param {number} miliseconds - How often to run a cycle in ms
  * @return {Object} Iterator
  */
 
-async function* start(miliseconds) {
+async function* nextCycle(miliseconds) {
   // init values
   const initThreads = transformPages(await fetchPages(miliseconds));
   var prevThreads = initThreads;
@@ -60,7 +60,7 @@ async function* start(miliseconds) {
     await utils.wait(miliseconds - (Date.now() - lastCycleStart));
     lastCycleStart = Date.now();
     try {
-      let currentThreads = await runCycle(prevThreads, miliseconds);
+      let currentThreads = await collectData(prevThreads, miliseconds);
       prevThreads = currentThreads;
     } catch (e) {
       utils.handleError(e);
@@ -74,6 +74,29 @@ async function* start(miliseconds) {
 }
 
 /**
+ * Cycle runner
+ * Start running the cycle
+ *
+ * @async
+ * @generator
+ * @function start
+ * @param {number} miliseconds - How often to run a cycle in ms
+ * @return {Object} Iterator
+ */
+
+async function start(miliseconds, retryTimeOut) {
+  try {
+    for await (cycle of nextCycle(miliseconds)) {
+    }
+  } catch (e) {
+    utils.handleError(e);
+    logger.info({ message: `Retry in ${retryTimeOut}ms` });
+    await utils.wait(retryTimeOut);
+    return start(miliseconds, retryTimeOut);
+  }
+}
+
+/**
  * Main process
  *
  * @async
@@ -82,28 +105,17 @@ async function* start(miliseconds) {
  * @param {number} retryTimeOut - Wait time in ms before retrying after an error
  */
 
-async function main(miliseconds, retryTimeOut) {
-  try {
-    for await (cycle of start(miliseconds)) {
-    }
-  } catch (e) {
-    utils.handleError(e);
-    logger.info({ message: `Retry in ${retryTimeOut}ms` });
-    await utils.wait(retryTimeOut);
-    return main(miliseconds, retryTimeOut);
-  }
+async function main(miliseconds = 60000, retryTimeOut = 5000) {
+  logger.info({ message: "Start process" });
+  start(miliseconds, retryTimeOut);
+
+  process.on("SIGINT", function () {
+    mongoose.connection.close(function () {
+      logger.info({ message: "Disconnect DB" });
+      logger.info({ message: "End process" });
+      process.exit(0);
+    });
+  });
 }
 
-logger.info({ message: "Start process" });
-mongoose.connection.on("connected", function () {
-  logger.info("MongoDB connected...");
-  main(60000, 5000);
-});
-
-process.on("SIGINT", function () {
-  mongoose.connection.close(function () {
-    logger.info({ message: "Disconnect DB" });
-    logger.info({ message: "End process" });
-    process.exit(0);
-  });
-});
+main();
