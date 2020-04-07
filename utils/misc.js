@@ -1,7 +1,7 @@
 "use strict";
 /**
- * Utility functions.
- * @module utils
+ * Misc utilitiy functions.
+ * @module misc
  */
 const logger = require("./logger");
 

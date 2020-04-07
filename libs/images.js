@@ -8,20 +8,23 @@ const path = require("path");
 const fs = require("fs");
 const imagemin = require("imagemin");
 const sharp = require("sharp");
+
 const promisify = require("util").promisify;
-const utils = require("./utils");
+const utils = require("../utils/misc");
 const imageminMozjpeg = require("imagemin-mozjpeg");
 const imageminPngquant = require("imagemin-pngquant");
 const imghash = require("imghash");
 const leven = require("leven");
 const Redis = require("ioredis");
 const redis = new Redis();
-const ImageEntry = require("./models/ImageEntry");
-const ImageEncounter = require("./models/ImageEncounter");
+const ImageEntry = require("../models/ImageEntry");
+const ImageEncounter = require("../models/ImageEncounter");
 const ObjectId = require("mongoose").Types.ObjectId;
 
 const unlink = promisify(fs.unlink);
 const readFile = promisify(fs.readFile);
+const pipeline = promisify(require("stream").pipeline);
+const DOWNLOAD_DIR = path.resolve(__dirname, "../", process.env.DOWNLOAD_DIR);
 
 /**
  * Download images
@@ -34,7 +37,7 @@ const readFile = promisify(fs.readFile);
  */
 
 async function download(url, fileName) {
-  const downloadPath = path.resolve(__dirname, process.env.DOWNLOAD_DIR, fileName);
+  const downloadPath = path.resolve(DOWNLOAD_DIR, fileName);
   const writer = fs.createWriteStream(downloadPath);
 
   const response = await axios({
@@ -43,12 +46,7 @@ async function download(url, fileName) {
     responseType: "stream",
   });
 
-  response.data.pipe(writer);
-
-  return new Promise((resolve, reject) => {
-    writer.on("finish", resolve);
-    writer.on("error", reject);
-  });
+  await pipeline(response.data, writer);
 }
 
 /**
@@ -61,9 +59,9 @@ async function download(url, fileName) {
  */
 
 async function optimize(fileName) {
-  const dir = path.resolve(__dirname, process.env.DOWNLOAD_DIR);
+  const dir = DOWNLOAD_DIR;
   const optimizedDir = path.join(dir, "optimized");
-  const filePath = path.resolve(__dirname, process.env.DOWNLOAD_DIR, fileName);
+  const filePath = path.resolve(DOWNLOAD_DIR, fileName);
 
   // minify
   await imagemin([filePath], {
@@ -94,12 +92,7 @@ async function optimize(fileName) {
  */
 
 async function save(fileName) {
-  const filePath = path.resolve(
-    __dirname,
-    process.env.DOWNLOAD_DIR,
-    "optimized",
-    fileName
-  );
+  const filePath = path.resolve(DOWNLOAD_DIR, "optimized", fileName);
   const image = await readFile(filePath);
   const hash = await imghash.hash(image, 8, "binary");
   var matchingHash;

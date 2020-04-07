@@ -5,7 +5,7 @@
  */
 
 const axios = require("axios");
-const PostStatistic = require("./models/PostStatistic");
+const PostStatistic = require("../models/PostStatistic");
 /**
  * Fetch all pages from /biz/.
  *

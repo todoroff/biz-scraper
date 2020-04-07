@@ -1,12 +1,12 @@
 "use strict";
 
 require("dotenv").config();
-const threads = require("./threads");
-const utils = require("./utils");
-const logger = require("./logger");
+const threads = require("./libs/threads");
+const utils = require("./utils/misc");
+const logger = require("./utils/logger");
 const mongoose = require("mongoose");
-const connectDb = require("./connectDb");
-const images = require("./images");
+const connectDb = require("./utils/connectDb");
+const images = require("./libs/images");
 
 /**
  * Collect /biz/ data and save to DB
