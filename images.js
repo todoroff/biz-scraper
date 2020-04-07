@@ -67,7 +67,7 @@ async function optimize(fileName) {
 
   // minify
   await imagemin([filePath], {
-    destination: optimizedDir,
+    destination: dir,
     plugins: [
       imageminMozjpeg({ quality: 50 }),
       imageminPngquant({ quality: [0.1, 0.3], strip: true }),
