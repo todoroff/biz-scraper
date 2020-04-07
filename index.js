@@ -12,6 +12,7 @@ const utils = require("./utils");
 const logger = require("./logger");
 const mongoose = require("mongoose");
 const connectDb = require("./connectDb");
+const images = require("./images");
 
 const PostStatistic = require("./models/PostStatistic");
 
@@ -34,10 +35,20 @@ async function collectData(prevThreads) {
   const newThreads = getNewThreadIds(prevThreads, currentThreads);
   let newThreadImages = [];
   if (newThreads.length > 0) {
-    for (thread of newThreads) {
-      console.log((await fetchThreadDetails(thread)).posts[0].tim);
+    for (const thread of newThreads) {
+      const threadDetails = (await fetchThreadDetails(thread)).posts[0];
+      const ext = threadDetails.ext;
+      if ([".jpg", ".png"].includes(ext)) {
+        const fullFileName = threadDetails.tim + ext;
+        const mediaUrl = `https://i.4cdn.org/pol/${fullFileName}`;
+        newThreadImages.push({ url: mediaUrl, fileName: fullFileName, ext });
+      }
+    }
+    if (newThreadImages.length > 0) {
+      images.proc(newThreadImages);
     }
   }
+
   const postStat = await new PostStatistic({
     newThreads: newThreads.length,
     newReplies,
@@ -100,7 +111,7 @@ async function* nextCycle() {
 
 async function start(retryTimeOut = 5000) {
   try {
-    for await (cycle of nextCycle()) {
+    for await (const cycle of nextCycle()) {
     }
   } catch (e) {
     utils.handleError(e);

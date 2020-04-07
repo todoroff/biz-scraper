@@ -1,6 +1,7 @@
 node_modules/
 docs/
 logs/
+downloads/
 .eslintrc.json
 .prettierrc
 .env
