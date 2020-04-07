@@ -152,7 +152,7 @@ async function save(fileName) {
  *
  * @async
  * @function proc
- * @param {Array.<Object>} images - Object with threads from previous cycle
+ * @param {Array.<Object>} images - Array of objects with image url & filename
  * @returns {Promise}
  */
 
@@ -169,7 +169,5 @@ async function proc(images) {
 }
 
 module.exports = {
-  download,
-  optimize,
   proc,
 };

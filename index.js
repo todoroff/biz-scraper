@@ -1,20 +1,12 @@
 "use strict";
 
 require("dotenv").config();
-const {
-  transformPages,
-  fetchPages,
-  calculateNewReplies,
-  getNewThreadIds,
-  fetchThreadDetails,
-} = require("./threads");
+const threads = require("./threads");
 const utils = require("./utils");
 const logger = require("./logger");
 const mongoose = require("mongoose");
 const connectDb = require("./connectDb");
 const images = require("./images");
-
-const PostStatistic = require("./models/PostStatistic");
 
 /**
  * Collect /biz/ data and save to DB
@@ -29,39 +21,22 @@ const PostStatistic = require("./models/PostStatistic");
 
 async function collectData(prevThreads) {
   var result = {};
-  const currentThreads = transformPages(await fetchPages());
-  const newReplies = calculateNewReplies(prevThreads, currentThreads);
-  const newThreads = getNewThreadIds(prevThreads, currentThreads);
-  let newThreadImages = [];
-  if (newThreads.length > 0) {
-    for (const thread of newThreads) {
-      const threadDetails = (await fetchThreadDetails(thread)).posts[0];
-      const ext = threadDetails.ext;
-      if ([".jpg", ".png"].includes(ext)) {
-        const fullFileName = threadDetails.tim + ext;
-        const mediaUrl = `https://i.4cdn.org/biz/${fullFileName}`;
-        newThreadImages.push({ url: mediaUrl, fileName: fullFileName });
-      }
-    }
-    if (newThreadImages.length > 0) {
-      images.proc(newThreadImages);
-    }
-  }
+  const currentThreads = await threads.getCurrentThreads();
+  const data = await threads.proc(prevThreads, currentThreads);
 
-  const postStat = await new PostStatistic({
-    newThreads: newThreads.length,
-    newReplies,
-  }).save();
+  if (data.imageDetails.length > 0) {
+    images.proc(data.imageDetails);
+  }
 
   Object.assign(
     result,
     { currentThreads: { ...currentThreads } },
-    { stats: postStat }
+    { stats: { ...data } }
   );
 
-  console.log("New Replies: " + newReplies);
-  console.log("New threads: " + newThreads.length);
-  console.log(newThreads);
+  console.log("New Replies: " + data.newReplies);
+  console.log("New threads: " + data.newThreads.length);
+  console.log(data.newThreads);
 
   return result;
 }
@@ -78,7 +53,7 @@ async function collectData(prevThreads) {
 
 async function* nextCycle() {
   // init values
-  const initThreads = transformPages(await fetchPages());
+  const initThreads = await threads.getCurrentThreads();
   var prevThreads = initThreads;
   var lastCycleStart = Date.now();
 

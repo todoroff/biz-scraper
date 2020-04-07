@@ -5,7 +5,7 @@
  */
 
 const axios = require("axios");
-
+const PostStatistic = require("./models/PostStatistic");
 /**
  * Fetch all pages from /biz/.
  *
@@ -118,11 +118,67 @@ async function fetchThreadDetails(threadId) {
   return details;
 }
 
+/**
+ * Get object with current threads.
+ *
+ * @async
+ * @function getCurrentThreads
+ * @return {Promise.<Object>}  Object of current threads
+ */
+
+async function getCurrentThreads() {
+  return transformPages(await fetchPages());
+}
+
+/**
+ * Get the URL and filename of .png and .jpg images
+ * for each thread of the provided list of thread IDs.
+ *
+ * @async
+ * @function getThreadsImageDetails
+ * @param {Array.<string>} - List of thread IDs
+ * @return {Promise.<Object>}  Object of current threads
+ */
+
+async function getThreadsImageDetails(threadIds) {
+  let imageDetails = [];
+
+  for (const thread of threadIds) {
+    const threadDetails = (await fetchThreadDetails(thread)).posts[0];
+    const ext = threadDetails.ext;
+    if ([".jpg", ".png"].includes(ext)) {
+      const fullFileName = threadDetails.tim + ext;
+      const mediaUrl = `https://i.4cdn.org/biz/${fullFileName}`;
+      imageDetails.push({ url: mediaUrl, fileName: fullFileName });
+    }
+  }
+  return imageDetails;
+}
+/**
+ * Given previous and current threads, calculate the stats,
+ * and save to database
+ *
+ * @async
+ * @function proc
+ * @return {Promise.<Object>}  Object with stats and new threads' images
+ */
+
+async function proc(prevThreads, currentThreads) {
+  const newReplies = calculateNewReplies(prevThreads, currentThreads);
+  const newThreads = getNewThreadIds(prevThreads, currentThreads);
+  let imageDetails = [];
+  if (newThreads.length > 0) {
+    imageDetails = await getThreadsImageDetails(newThreads);
+  }
+  await new PostStatistic({
+    newThreads: newThreads.length,
+    newReplies,
+  }).save();
+
+  return { newThreads, newReplies, imageDetails };
+}
+
 module.exports = {
-  fetchPages,
-  transformPages,
-  getNewThreadIds,
-  calculateNewReplies,
-  calculateNewPosts,
-  fetchThreadDetails,
+  getCurrentThreads,
+  proc,
 };
