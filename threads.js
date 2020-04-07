@@ -21,7 +21,7 @@ async function fetchPages(ms = process.env.CYCLE_TIME) {
       "If-Modified-Since": new Date(Date.now() - ms).toUTCString(),
     },
   };
-  var pages = (await axios.get("https://a.4cdn.org/pol/threads.json", config)).data;
+  var pages = (await axios.get("https://a.4cdn.org/biz/threads.json", config)).data;
   return pages;
 }
 
@@ -113,7 +113,7 @@ function calculateNewPosts(prevThreads, currentThreads) {
  */
 
 async function fetchThreadDetails(threadId) {
-  var details = (await axios.get(`https://a.4cdn.org/pol/thread/${threadId}.json`))
+  var details = (await axios.get(`https://a.4cdn.org/biz/thread/${threadId}.json`))
     .data;
   return details;
 }

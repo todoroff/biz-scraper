@@ -22,7 +22,6 @@ const PostStatistic = require("./models/PostStatistic");
  * - calculate new posts
  *
  * @async
- * @generator
  * @function collectData
  * @param {Object} prevThreads - Object with threads from previous cycle
  * @return {Promise.<Object>} Object with threads from current cycle
@@ -40,8 +39,8 @@ async function collectData(prevThreads) {
       const ext = threadDetails.ext;
       if ([".jpg", ".png"].includes(ext)) {
         const fullFileName = threadDetails.tim + ext;
-        const mediaUrl = `https://i.4cdn.org/pol/${fullFileName}`;
-        newThreadImages.push({ url: mediaUrl, fileName: fullFileName, ext });
+        const mediaUrl = `https://i.4cdn.org/biz/${fullFileName}`;
+        newThreadImages.push({ url: mediaUrl, fileName: fullFileName });
       }
     }
     if (newThreadImages.length > 0) {
