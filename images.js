@@ -23,6 +23,16 @@ const ObjectId = require("mongoose").Types.ObjectId;
 const unlink = promisify(fs.unlink);
 const readFile = promisify(fs.readFile);
 
+/**
+ * Download images
+ *
+ * @async
+ * @function download
+ * @param {string} url - Image URL
+ * @param {string} fileName - Image filename
+ * @returns {Promise}
+ */
+
 async function download(url, fileName) {
   const downloadPath = path.resolve(__dirname, process.env.DOWNLOAD_DIR, fileName);
   const writer = fs.createWriteStream(downloadPath);
@@ -41,7 +51,16 @@ async function download(url, fileName) {
   });
 }
 
-async function optimize(fileName, ext) {
+/**
+ * Optimize images - minify, resize, move, and delete originals
+ *
+ * @async
+ * @function optimize
+ * @param {string} fileName - Image filename
+ * @returns {Promise}
+ */
+
+async function optimize(fileName) {
   const dir = path.resolve(__dirname, process.env.DOWNLOAD_DIR);
   const optimizedDir = path.join(dir, "optimized");
   const filePath = path.resolve(__dirname, process.env.DOWNLOAD_DIR, fileName);
@@ -63,6 +82,16 @@ async function optimize(fileName, ext) {
   // delete original
   await unlink(filePath);
 }
+
+/**
+ * Save non-duplicate images to DB & filesystem, and keep
+ * track when and how many times a certain image has been posted.
+ *
+ * @async
+ * @function save
+ * @param {string} fileName - Image filename
+ * @returns {Promise}
+ */
 
 async function save(fileName) {
   const filePath = path.resolve(
@@ -88,7 +117,8 @@ async function save(fileName) {
     stream.resume();
   });
 
-  // if there's a match
+  // if there's a match update DB accordingly,
+  // and delete duplicate from filesystem
   stream.on("close", async function () {
     try {
       const entryId = await redis.get(matchingHash);
@@ -105,7 +135,7 @@ async function save(fileName) {
     }
   });
 
-  // if no match
+  // if no match save to db
   stream.on("end", async function () {
     try {
       const entry = await new ImageEntry({ hash, fileName }).save();
@@ -117,11 +147,20 @@ async function save(fileName) {
   });
 }
 
+/**
+ * Download, optimize, and save images to database
+ *
+ * @async
+ * @function proc
+ * @param {Array.<Object>} images - Object with threads from previous cycle
+ * @returns {Promise}
+ */
+
 async function proc(images) {
   try {
     for (const i of images) {
       await download(i.url, i.fileName);
-      await optimize(i.fileName, i.ext);
+      await optimize(i.fileName);
       await save(i.fileName);
     }
   } catch (e) {
