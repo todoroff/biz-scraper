@@ -152,6 +152,37 @@ function getThreadsImageDetails(newThreadsIds, currentThreads) {
   }
   return imageDetails;
 }
+
+/**
+ * Get the 5 threads with the highest rpm,
+ * that have been active in the last 30 minutes
+ *
+ * @function getActiveThreads
+ * @param {Object} currentThreads Object with current threads
+ * @return {Array.<Object>}  Sorted list of thread objects with added rpm (replies-per-minute) parameter
+ */
+
+function getActiveThreads(currentThreads) {
+  const now = Date.now();
+  const activeThreads = Object.keys(currentThreads)
+    .map((id) => currentThreads[id])
+    .filter((thread) => thread.last_modified > (now - 1000 * 60 * 30) / 1000)
+    .filter((thread) => thread.replies > 5)
+    .sort((a, b) => {
+      if (a.replies / (now / 1000 - a.time) > b.replies / (now / 1000 - b.time))
+        return -1;
+      if (a.replies / (now / 1000 - a.time) < b.replies / (now / 1000 - b.time))
+        return 1;
+      return 0;
+    })
+    .slice(0, 5)
+    .map((thread) => ({
+      ...thread,
+      rpm: thread.replies / (now / 1000 / 60 - thread.time / 60),
+    }));
+  return activeThreads.map((thread) => thread.rpm);
+}
+
 /**
  * Given previous and current threads, calculate the stats,
  * and save to database
@@ -180,4 +211,5 @@ async function proc(prevThreads, currentThreads) {
 module.exports = {
   getCurrentThreads,
   proc,
+  getActiveThreads,
 };
