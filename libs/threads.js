@@ -5,6 +5,7 @@
  */
 
 const axios = require("axios");
+const utils = require("../utils/misc");
 const PostStatistic = require("../models/PostStatistic");
 /**
  * Fetch all pages from /biz/.
@@ -26,7 +27,7 @@ async function fetchPages(ms = process.env.CYCLE_TIME) {
 }
 
 /**
- * Turn a list of pages in to an object of threads with thread ID as key.
+ * Turn a list of pages into an object of threads with thread ID as key.
  *
  * @function transformPages
  * @param {Object[]} pageList - A list of page objects.
@@ -50,7 +51,7 @@ function transformPages(pageList) {
 
 /**
  * Given a previous object of threads, and a new object of threads,
- * get the IDs.
+ * get the IDs of new threads (if any).
  *
  * @function getNewThreadIds
  * @param {Object} prevThreads - Threads from previous fetch.
@@ -67,40 +68,37 @@ function getNewThreadIds(prevThreads, currentThreads) {
 
 /**
  * Given a previous object of threads, and a new object of threads,
- * calculate the number of new replies.
+ * calculate the number of new replies for each thread and as a total.
  *
- * @function calculateNewReplies
+ * @function getNewRepliesCount
  * @param {Object} prevThreads - Threads from previous fetch.
  * @param {Object} currentThreads - Threads from current fetch.
- * @return {number} Number of new replies
+ * @return {Object} Object with total number of new replies and list of new replies per thread ID
  */
 
-function calculateNewReplies(prevThreads, currentThreads) {
-  const newReplies = Object.keys(currentThreads).reduce((acc, threadId) => {
-    if (prevThreads[threadId] !== undefined) {
-      return acc + currentThreads[threadId].replies - prevThreads[threadId].replies;
-    } else {
-      return acc + currentThreads[threadId].replies;
-    }
-  }, 0);
-  return newReplies;
-}
-
-/**
- * Given a previous object of threads, and a new object of threads,
- * calculate the number of new posts (threads + replies).
- *
- * @function calculateNewPosts
- * @param {Object} prevThreads - Threads from previous fetch.
- * @param {Object} currentThreads - Threads from current fetch.
- * @return {number} Number of new posts.
- */
-
-function calculateNewPosts(prevThreads, currentThreads) {
-  return (
-    calculateNewReplies(prevThreads, currentThreads) +
-    getNewThreadIds(prevThreads, currentThreads).length
+function getNewRepliesCount(prevThreads, currentThreads) {
+  const newReplies = Object.keys(currentThreads).reduce(
+    (acc, threadId) => {
+      if (prevThreads[threadId] !== undefined) {
+        const newRepliesCount =
+          currentThreads[threadId].replies - prevThreads[threadId].replies;
+        return Object.assign(acc, {
+          perThread: [...acc.perThread, { [threadId]: newRepliesCount }],
+          totalNewReplies: acc.totalNewReplies + newRepliesCount,
+        });
+      } else {
+        return Object.assign(acc, {
+          perThread: [
+            ...acc.perThread,
+            { [threadId]: currentThreads[threadId].replies },
+          ],
+          totalNewReplies: acc.totalNewReplies + currentThreads[threadId].replies,
+        });
+      }
+    },
+    { totalNewReplies: 0, perThread: [] }
   );
+  return newReplies;
 }
 
 /**
@@ -134,20 +132,18 @@ async function getCurrentThreads() {
  * Get the URL and filename of .png and .jpg images
  * for each thread of the provided list of thread IDs.
  *
- * @async
  * @function getThreadsImageDetails
- * @param {Array.<string>} - List of thread IDs
- * @return {Promise.<Object>}  Object of current threads
+ * @param {Array.<Object>} threadsDetails - List of thread details objects
+ * @return {<Object>}  Object of current threads
  */
 
-async function getThreadsImageDetails(threadIds) {
+function getThreadsImageDetails(threadsDetails) {
   let imageDetails = [];
 
-  for (const thread of threadIds) {
-    const threadDetails = (await fetchThreadDetails(thread)).posts[0];
-    const ext = threadDetails.ext;
+  for (const details of threadsDetails) {
+    const ext = details.ext;
     if ([".jpg", ".png"].includes(ext)) {
-      const fullFileName = threadDetails.tim + ext;
+      const fullFileName = details.tim + ext;
       const mediaUrl = `https://i.4cdn.org/biz/${fullFileName}`;
       imageDetails.push({ url: mediaUrl, fileName: fullFileName });
     }
@@ -164,18 +160,28 @@ async function getThreadsImageDetails(threadIds) {
  */
 
 async function proc(prevThreads, currentThreads) {
-  const newReplies = calculateNewReplies(prevThreads, currentThreads);
-  const newThreads = getNewThreadIds(prevThreads, currentThreads);
-  let imageDetails = [];
-  if (newThreads.length > 0) {
-    imageDetails = await getThreadsImageDetails(newThreads);
+  const newReplies = getNewRepliesCount(prevThreads, currentThreads);
+  const newThreadIds = getNewThreadIds(prevThreads, currentThreads);
+  let threadsDetails = [];
+  let newImagesDetails = [];
+  if (newThreadIds.length > 0) {
+    for (const id of newThreadIds) {
+      try {
+        threadsDetails.push((await fetchThreadDetails(id)).posts[0]);
+        await utils.wait(1000);
+      } catch (e) {
+        utils.handleError(e);
+      }
+    }
+    newImagesDetails = getThreadsImageDetails(threadsDetails);
   }
+
   await new PostStatistic({
-    newThreads: newThreads.length,
-    newReplies,
+    newThreads: newThreadIds.length,
+    newReplies: newReplies.totalNewReplies,
   }).save();
 
-  return { newThreads, newReplies, imageDetails };
+  return { newThreadIds, newReplies, newImagesDetails };
 }
 
 module.exports = {
