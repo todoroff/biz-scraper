@@ -141,17 +141,17 @@ async function save(fileName) {
 }
 
 /**
- * Remove images older than 30 days
+ * Remove images older than given number of days
  *
  * @async
+ * @param {number} olderThanDays -remove images older than this amount of days
  * @function cleanUp
  * @returns {Promise.<Array.<Object>>} List of deleted image entries
  */
 
-async function cleanUp() {
+async function cleanUp(olderThanDays = 30) {
   const date = new Date();
-  const daysAgo = 30;
-  const deletionDate = new Date(date.setDate(date.getDate() - daysAgo));
+  const deletionDate = new Date(date.setDate(date.getDate() - olderThanDays));
 
   const mongoEntries = await ImageEntry.find().where("date").lt(deletionDate).exec();
 
