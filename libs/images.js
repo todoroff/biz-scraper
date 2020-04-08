@@ -141,6 +141,34 @@ async function save(fileName) {
 }
 
 /**
+ * Remove images older than 30 days
+ *
+ * @async
+ * @function cleanUp
+ * @returns {Promise}
+ */
+
+async function cleanUp() {
+  const date = new Date();
+  const daysAgo = 30;
+  const deletionDate = new Date(date.setDate(date.getDate() - daysAgo));
+
+  const mongoEntries = await ImageEntry.find().where("date").lt(deletionDate).exec();
+
+  for (const entry of mongoEntries) {
+    try {
+      await redis.del(entry.hash);
+      await ImageEntry.deleteOne({ _id: ObjectId(entry._id) });
+      await ImageEncounter.deleteOne({ entryId: ObjectId(entry._id) });
+      await unlink(path.resolve(DOWNLOAD_DIR, "optimized", entry.fileName));
+    } catch (e) {
+      handleError(e);
+    }
+  }
+  return mongoEntries;
+}
+
+/**
  * Download, optimize, and save images to database
  *
  * @async
@@ -163,4 +191,5 @@ async function proc(images) {
 
 module.exports = {
   proc,
+  cleanUp,
 };

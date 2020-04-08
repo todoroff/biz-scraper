@@ -83,6 +83,21 @@ async function* nextCycle() {
 
 async function start(retryTimeOut = 5000) {
   try {
+    //schedule cleanups
+    logger.info("Schedule cleanups");
+    setInterval(async () => {
+      logger.info("Begin cleanup");
+      try {
+        await images.cleanUp();
+        logger.info("Finished cleanup");
+      } catch (e) {
+        handleError(e);
+        logger.info("Error during cleanup");
+      }
+    }, 1000 * 60 * 60 * 24);
+
+    logger.info("Start cycle generator");
+    //start cycle generator
     for await (const cycle of nextCycle()) {
     }
   } catch (e) {
