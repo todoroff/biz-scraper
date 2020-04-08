@@ -145,7 +145,7 @@ async function save(fileName) {
  *
  * @async
  * @function cleanUp
- * @returns {Promise}
+ * @returns {Promise.<Array.<Object>>} List of deleted image entries
  */
 
 async function cleanUp() {
