@@ -22,7 +22,7 @@ async function fetchPages(ms = process.env.CYCLE_TIME) {
       "If-Modified-Since": new Date(Date.now() - ms).toUTCString(),
     },
   };
-  var pages = (await axios.get("https://a.4cdn.org/biz/threads.json", config)).data;
+  var pages = (await axios.get("https://a.4cdn.org/biz/catalog.json", config)).data;
   return pages;
 }
 
@@ -133,17 +133,19 @@ async function getCurrentThreads() {
  * for each thread of the provided list of thread IDs.
  *
  * @function getThreadsImageDetails
- * @param {Array.<Object>} threadsDetails - List of thread details objects
- * @return {<Object>}  Object of current threads
+ * @param {Object} currentThreads - Object with current threads
+ * @param {Array.<sring>} newThreadsIds - List of new threads' IDs
+ * @return {Object}  Object of current threads
  */
 
-function getThreadsImageDetails(threadsDetails) {
+function getThreadsImageDetails(newThreadsIds, currentThreads) {
   let imageDetails = [];
 
-  for (const details of threadsDetails) {
-    const ext = details.ext;
+  for (const id of newThreadsIds) {
+    const thread = currentThreads[id];
+    const ext = thread.ext;
     if ([".jpg", ".png"].includes(ext)) {
-      const fullFileName = details.tim + ext;
+      const fullFileName = thread.tim + ext;
       const mediaUrl = `https://i.4cdn.org/biz/${fullFileName}`;
       imageDetails.push({ url: mediaUrl, fileName: fullFileName });
     }
@@ -162,18 +164,9 @@ function getThreadsImageDetails(threadsDetails) {
 async function proc(prevThreads, currentThreads) {
   const newReplies = getNewRepliesCount(prevThreads, currentThreads);
   const newThreadIds = getNewThreadIds(prevThreads, currentThreads);
-  let threadsDetails = [];
   let newImagesDetails = [];
   if (newThreadIds.length > 0) {
-    for (const id of newThreadIds) {
-      try {
-        threadsDetails.push((await fetchThreadDetails(id)).posts[0]);
-        await utils.wait(1000);
-      } catch (e) {
-        utils.handleError(e);
-      }
-    }
-    newImagesDetails = getThreadsImageDetails(threadsDetails);
+    newImagesDetails = getThreadsImageDetails(newThreadIds, currentThreads);
   }
 
   await new PostStatistic({
