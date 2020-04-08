@@ -10,8 +10,6 @@ const images = require("./libs/images");
 
 /**
  * Collect /biz/ data and save to DB
- * - fetch threads
- * - calculate new posts
  *
  * @async
  * @function collectData
@@ -24,8 +22,8 @@ async function collectData(prevThreads) {
   const currentThreads = await threads.getCurrentThreads();
   const data = await threads.proc(prevThreads, currentThreads);
 
-  if (data.imageDetails.length > 0) {
-    images.proc(data.imageDetails);
+  if (data.newImagesDetails.length > 0) {
+    images.proc(data.newImagesDetails);
   }
 
   Object.assign(
@@ -34,9 +32,9 @@ async function collectData(prevThreads) {
     { stats: { ...data } }
   );
 
-  console.log("New Replies: " + data.newReplies);
-  console.log("New threads: " + data.newThreads.length);
-  console.log(data.newThreads);
+  console.log("New Replies: ", data.newReplies);
+  console.log("New threads: " + data.newThreadIds.length);
+  console.log(data.newThreadIds);
 
   return result;
 }
@@ -65,7 +63,7 @@ async function* nextCycle() {
       prevThreads = currentThreads;
     } catch (e) {
       utils.handleError(e);
-      // reset lastCycleStart, so we wait only 5000 instead of given miliseconds
+      // reset lastCycleStart, so we wait only 5000 instead of default miliseconds
       // before the next cycle is run
       lastCycleStart = Date.now() - (process.env.CYCLE_TIME - 5000);
     }
