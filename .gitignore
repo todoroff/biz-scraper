@@ -5,3 +5,4 @@ downloads/
 .eslintrc.json
 .prettierrc
 .env
+sandbox.js
