@@ -18,7 +18,6 @@ const leven = require("leven");
 const Redis = require("ioredis");
 const redis = new Redis();
 const ImageEntry = require("../models/ImageEntry");
-const ImageEncounter = require("../models/ImageEncounter");
 const ObjectId = require("mongoose").Types.ObjectId;
 
 const unlink = promisify(fs.unlink);
@@ -115,7 +114,6 @@ async function save(fileName) {
   stream.on("close", async function () {
     try {
       const entryId = await redis.get(matchingHash);
-      await new ImageEncounter({ entryId }).save();
       await ImageEntry.updateOne(
         { _id: ObjectId(entryId) },
         {
@@ -132,7 +130,6 @@ async function save(fileName) {
   stream.on("end", async function () {
     try {
       const entry = await new ImageEntry({ hash, fileName }).save();
-      await new ImageEncounter({ entryId: entry.id }).save();
       await redis.set(hash, entry.id);
     } catch (e) {
       utils.handleError(e);
@@ -149,7 +146,7 @@ async function save(fileName) {
  * @returns {Promise.<Array.<Object>>} List of deleted image entries
  */
 
-async function cleanUp(olderThanDays = 30) {
+async function cleanUp(olderThanDays = 1) {
   const date = new Date();
   const deletionDate = new Date(date.setDate(date.getDate() - olderThanDays));
 
