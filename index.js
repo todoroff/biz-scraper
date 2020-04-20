@@ -18,25 +18,27 @@ const images = require("./libs/images");
  */
 
 async function collectData(prevThreads) {
-  var result = {};
   const currentThreads = await threads.getCurrentThreads();
-  const data = await threads.proc(prevThreads, currentThreads);
+  const newThreadIds = threads.getNewThreadIds(prevThreads, currentThreads);
 
-  if (data.newImagesDetails.length > 0) {
-    images.proc(data.newImagesDetails);
+  threads.proc(prevThreads, currentThreads);
+
+  let newImagesDetails = [];
+  let newTexts = [];
+  if (newThreadIds.length > 0) {
+    newImagesDetails = threads.getThreadsImageDetails(newThreadIds, currentThreads);
+    newTexts = threads.getThreadsTexts(newThreadIds, currentThreads);
   }
 
-  Object.assign(
-    result,
-    { currentThreads: { ...currentThreads } },
-    { stats: { ...data } }
-  );
+  if (newImagesDetails.length > 0) {
+    images.proc(newImagesDetails);
+  }
 
-  console.log("New Replies: ", data.newReplies);
-  console.log("New threads: " + data.newThreadIds.length);
-  console.log(data.newThreadIds);
+  console.log("New threads: " + newThreadIds.length);
+  console.log("New texts" + newTexts);
+  console.log(newThreadIds);
 
-  return result;
+  return { ...currentThreads };
 }
 
 /**
@@ -59,7 +61,7 @@ async function* nextCycle() {
     await utils.wait(process.env.CYCLE_TIME - (Date.now() - lastCycleStart));
     lastCycleStart = Date.now();
     try {
-      let currentThreads = (await collectData(prevThreads)).currentThreads;
+      let currentThreads = await collectData(prevThreads);
       prevThreads = currentThreads;
     } catch (e) {
       utils.handleError(e);

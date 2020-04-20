@@ -133,16 +133,16 @@ async function getCurrentThreads() {
  * for each thread of the provided list of thread IDs.
  *
  * @function getThreadsImageDetails
- * @param {Object} currentThreads - Object with current threads
- * @param {Array.<sring>} newThreadsIds - List of new threads' IDs
+ * @param {Object} threads - Object of threads
+ * @param {Array.<sring>} threadIds - List of thread IDs
  * @return {Object}  Object of current threads
  */
 
-function getThreadsImageDetails(newThreadsIds, currentThreads) {
+function getThreadsImageDetails(threadIds, threads) {
   let imageDetails = [];
 
-  for (const id of newThreadsIds) {
-    const thread = currentThreads[id];
+  for (const id of threadIds) {
+    const thread = threads[id];
     const ext = thread.ext;
     if ([".jpg", ".png"].includes(ext)) {
       const fullFileName = thread.tim + ext;
@@ -151,6 +151,27 @@ function getThreadsImageDetails(newThreadsIds, currentThreads) {
     }
   }
   return imageDetails;
+}
+
+/**
+ * Get the text content
+ * for each thread of the provided list of thread IDs.
+ *
+ * @function getThreadsTexts
+ * @param {Object} threads - Threads object
+ * @param {Array.<sring>} threadIds - List of new threads' IDs
+ * @return {Object}  Object of current threads
+ */
+
+function getThreadsTexts(threadIds, threads) {
+  let threadsTexts = [];
+
+  for (const id of threadIds) {
+    const thread = threads[id];
+    threadsTexts.push(thread.com);
+  }
+
+  return threadsTexts;
 }
 
 /**
@@ -185,31 +206,32 @@ function getActiveThreads(currentThreads) {
 
 /**
  * Given previous and current threads, calculate the stats,
- * and save to database
+ * and save to database. Return
  *
  * @async
  * @function proc
- * @return {Promise.<Object>}  Object with stats and new threads' images
+ * @return {Promise.<Object>}  Object with stats
  */
 
 async function proc(prevThreads, currentThreads) {
-  const newReplies = getNewRepliesCount(prevThreads, currentThreads);
-  const newThreadIds = getNewThreadIds(prevThreads, currentThreads);
-  let newImagesDetails = [];
-  if (newThreadIds.length > 0) {
-    newImagesDetails = getThreadsImageDetails(newThreadIds, currentThreads);
+  try {
+    const newReplies = getNewRepliesCount(prevThreads, currentThreads);
+    const newThreadIds = getNewThreadIds(prevThreads, currentThreads);
+
+    await new PostStatistic({
+      newThreads: newThreadIds.length,
+      newReplies: newReplies.totalNewReplies,
+    }).save();
+  } catch (e) {
+    utils.handleError(e);
   }
-
-  await new PostStatistic({
-    newThreads: newThreadIds.length,
-    newReplies: newReplies.totalNewReplies,
-  }).save();
-
-  return { newThreadIds, newReplies, newImagesDetails };
 }
 
 module.exports = {
   getCurrentThreads,
   proc,
   getActiveThreads,
+  getNewThreadIds,
+  getThreadsImageDetails,
+  getThreadsTexts,
 };
