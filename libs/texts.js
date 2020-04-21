@@ -9,6 +9,17 @@ const htmlToText = require("html-to-text");
 const TextEntry = require("../models/TextEntry");
 const toxicityModel = require("@tensorflow-models/toxicity");
 
+/**
+ * Calculate the toxicity of a given text. Different toxicity
+ * categories carry different weight. Take the highest value after
+ * applying the weights.
+ *
+ * @async
+ * @function calculateToxicity
+ * @param {String} text
+ * @returns {Promise.<Number>} A number between 0 and 1
+ */
+
 async function calculateToxicity(text) {
   // The minimum prediction confidence.
   const threshold = 0.85;
@@ -44,6 +55,13 @@ async function calculateToxicity(text) {
   return result;
 }
 
+/**
+ * Remove HTML tags from text
+ *
+ * @function stripHtml
+ * @param {String} text
+ * @returns {String} Parsed text
+ */
 function stripHtml(text) {
   const result = htmlToText.fromString(text, {
     wordwrap: false,
