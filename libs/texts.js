@@ -21,12 +21,9 @@ const toxicityModel = require("@tensorflow-models/toxicity");
  */
 
 async function calculateToxicity(text) {
-  // The minimum prediction confidence.
-  const threshold = 0.85;
-
   // Load the model. Users optionally pass in a threshold and an array of
   // labels to include.
-  const model = await toxicityModel.load(threshold);
+  const model = await toxicityModel.load();
   const predictions = await model.classify(text);
   const result = Math.max(
     ...predictions.map((p) => {
