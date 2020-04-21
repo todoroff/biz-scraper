@@ -4,12 +4,18 @@ const mongoose = require("mongoose");
 
 const TextEntrySchema = new mongoose.Schema(
   {
+    title: {
+      type: String,
+    },
     content: {
       type: String,
-      required: true,
     },
     threadId: {
       type: String,
+      required: true,
+    },
+    toxicity: {
+      type: Number,
       required: true,
     },
     date: {

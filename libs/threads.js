@@ -154,13 +154,13 @@ function getThreadsImageDetails(threadIds, threads) {
 }
 
 /**
- * Get the text content
+ * Get the text title & content
  * for each thread of the provided list of thread IDs.
  *
  * @function getThreadsTexts
  * @param {Object} threads - Threads object
  * @param {Array.<sring>} threadIds - List of new threads' IDs
- * @return {Array.<Object>}  List of text details objects
+ * @return {Array.<Object>}  List of text details objects incl. threadId, content, title
  */
 
 function getThreadsTexts(threadIds, threads) {
@@ -168,7 +168,7 @@ function getThreadsTexts(threadIds, threads) {
 
   for (const id of threadIds) {
     const thread = threads[id];
-    threadsTexts.push({ threadId: id, content: thread.com });
+    threadsTexts.push({ threadId: id, content: thread.com, title: thread.sub });
   }
 
   return threadsTexts;
