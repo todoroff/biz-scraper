@@ -7,6 +7,7 @@ const logger = require("./utils/logger");
 const mongoose = require("mongoose");
 const connectDb = require("./utils/connectDb");
 const images = require("./libs/images");
+const texts = require("./libs/texts");
 
 /**
  * Collect /biz/ data and save to DB
@@ -32,6 +33,10 @@ async function collectData(prevThreads) {
 
   if (newImagesDetails.length > 0) {
     images.proc(newImagesDetails);
+  }
+
+  if (newTexts.length > 0) {
+    texts.proc(newTexts);
   }
 
   console.log("New threads: " + newThreadIds.length);

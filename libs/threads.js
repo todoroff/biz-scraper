@@ -135,7 +135,7 @@ async function getCurrentThreads() {
  * @function getThreadsImageDetails
  * @param {Object} threads - Object of threads
  * @param {Array.<sring>} threadIds - List of thread IDs
- * @return {Object}  Object of current threads
+ * @return {Array.<Object>}  List of image details objects
  */
 
 function getThreadsImageDetails(threadIds, threads) {
@@ -160,7 +160,7 @@ function getThreadsImageDetails(threadIds, threads) {
  * @function getThreadsTexts
  * @param {Object} threads - Threads object
  * @param {Array.<sring>} threadIds - List of new threads' IDs
- * @return {Object}  Object of current threads
+ * @return {Array.<Object>}  List of text details objects
  */
 
 function getThreadsTexts(threadIds, threads) {
@@ -168,7 +168,7 @@ function getThreadsTexts(threadIds, threads) {
 
   for (const id of threadIds) {
     const thread = threads[id];
-    threadsTexts.push(thread.com);
+    threadsTexts.push({ threadId: id, content: thread.com });
   }
 
   return threadsTexts;

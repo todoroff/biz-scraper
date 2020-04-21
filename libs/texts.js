@@ -5,25 +5,25 @@
  */
 
 const utils = require("../utils/misc");
+const TextEntry = require("../models/TextEntry");
 
 /**
  * Given previous and current threads, calculate the stats,
  * and save to database. Return
  *
  * @async
- * @function proc
- * @return {Promise.<Object>}  Object with stats
+ * @param {Array.<Object>} textList - Array of objects with image url & filename
+ * @returns {Promise}
  */
 
-async function proc(prevThreads, currentThreads) {
+async function proc(textList) {
   try {
-    const newReplies = getNewRepliesCount(prevThreads, currentThreads);
-    const newThreadIds = getNewThreadIds(prevThreads, currentThreads);
-
-    await new PostStatistic({
-      newThreads: newThreadIds.length,
-      newReplies: newReplies.totalNewReplies,
-    }).save();
+    for (const t of textList) {
+      await new TextEntry({
+        content: t.content,
+        threadId: t.threadId,
+      }).save();
+    }
   } catch (e) {
     utils.handleError(e);
   }
