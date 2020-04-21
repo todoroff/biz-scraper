@@ -27,9 +27,14 @@ async function calculateToxicity(text) {
         case "threat":
         case "toxicity":
           discount = 1;
+          break;
         case "obscene":
         case "sexual_explicit":
           discount = 1.5;
+          break;
+        default:
+          discount = 1;
+          break;
       }
       return p.results[0].probabilities[1] / discount;
     })
