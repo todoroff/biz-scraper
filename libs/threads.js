@@ -201,7 +201,7 @@ function getActiveThreads(currentThreads) {
       ...thread,
       rpm: thread.replies / (now / 1000 / 60 - thread.time / 60),
     }));
-  return activeThreads.map((thread) => thread.rpm);
+  return activeThreads;
 }
 
 /**

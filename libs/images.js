@@ -59,7 +59,7 @@ async function download(url, fileName) {
 
 async function optimize(fileName) {
   const dir = DOWNLOAD_DIR;
-  const optimizedDir = path.join(dir, "optimized");
+  const optimizedDir = path.resolve(dir, "optimized");
   const filePath = path.resolve(DOWNLOAD_DIR, fileName);
 
   // minify
@@ -74,7 +74,7 @@ async function optimize(fileName) {
   // resize
   await sharp(filePath)
     .resize({ width: 800, withoutEnlargement: true })
-    .toFile(path.join(optimizedDir, fileName));
+    .toFile(path.resolve(optimizedDir, fileName));
 
   // delete original
   await unlink(filePath);
