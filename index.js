@@ -98,7 +98,7 @@ async function start(retryTimeOut = 5000) {
     //start cycle generator
     for await (const currentThreads of nextCycle()) {
       const activeThreads = threads.getActiveThreads(currentThreads);
-      apiServer.postMessage(activeThreads);
+      apiServer.postMessage({ currentThreads, activeThreads });
     }
   } catch (e) {
     utils.handleError(e);

@@ -8,8 +8,8 @@
     "start": "node index.js",
     "generate-docs": "npx jsdoc . -c jsdoc.json"
   },
-  "author": "",
-  "license": "UNLICENSED",
+  "author": "todoroff",
+  "license": "MIT",
   "dependencies": {
     "@tensorflow-models/knn-classifier": "^1.2.2",
     "@tensorflow-models/mobilenet": "^2.0.4",

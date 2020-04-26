@@ -11,7 +11,7 @@ const TextEntrySchema = new mongoose.Schema(
       type: String,
     },
     threadId: {
-      type: String,
+      type: Number,
       required: true,
     },
     toxicity: {
