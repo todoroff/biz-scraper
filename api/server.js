@@ -58,24 +58,25 @@ async function getBasedness(threadIds) {
 
 var latestData = {};
 
-parentPort.on("message", async (msg) => {
-  try {
-    const { currentThreads, activeThreads } = msg;
-    const ppm = await getPpm();
-    const basedness = await getBasedness(Object.keys(currentThreads));
-    latestData = { activeThreads, ppm, basedness };
-    redis.publish("collector", "updated");
-  } catch (e) {
-    utils.handleError(e);
-  }
-});
-
 const httpsOptions = {
   key: fs.readFileSync(path.resolve(process.env.KEY)),
   cert: fs.readFileSync(path.resolve(process.env.CERT)),
 };
 const app = express();
 const server = require("https").createServer(httpsOptions, app);
+const io = require("socket.io")(server);
+
+parentPort.on("message", async (msg) => {
+  try {
+    const { currentThreads, activeThreads } = msg;
+    const ppm = await getPpm();
+    const basedness = await getBasedness(Object.keys(currentThreads));
+    latestData = { activeThreads, ppm, basedness };
+    io.emit("latestData", latestData);
+  } catch (e) {
+    utils.handleError(e);
+  }
+});
 
 if (process.env.NODE_ENV !== "production") {
   app.use(
@@ -89,6 +90,11 @@ if (process.env.NODE_ENV !== "production") {
     res.json(latestData);
   });
 }
+
+io.on("connection", async function (socket) {
+  console.log("connected");
+  console.log(socket.handshake);
+});
 
 const port = process.env.PORT || 2096;
 
