@@ -1,6 +1,7 @@
 "use strict";
 
 require("dotenv").config();
+const { Worker } = require("worker_threads");
 const threads = require("./libs/threads");
 const utils = require("./utils/misc");
 const logger = require("./utils/logger");
@@ -22,7 +23,8 @@ async function collectData(prevThreads) {
   const currentThreads = await threads.getCurrentThreads();
   const newThreadIds = threads.getNewThreadIds(prevThreads, currentThreads);
 
-  threads.proc(prevThreads, currentThreads);
+  const operations = [];
+  operations.push(threads.proc(prevThreads, currentThreads));
 
   let newImagesDetails = [];
   let newTexts = [];
@@ -32,15 +34,18 @@ async function collectData(prevThreads) {
   }
 
   if (newImagesDetails.length > 0) {
-    images.proc(newImagesDetails);
+    operations.push(images.proc(newImagesDetails));
   }
 
   if (newTexts.length > 0) {
-    texts.proc(newTexts);
+    operations.push(texts.proc(newTexts));
   }
+  try {
+    await Promise.all(operations);
+  } catch (e) {}
 
   console.log("New threads: " + newThreadIds.length);
-  console.log("New texts" + newTexts);
+  console.log("New texts: " + JSON.stringify(newTexts));
   console.log(newThreadIds);
 
   return { ...currentThreads };
@@ -67,6 +72,7 @@ async function* nextCycle() {
     lastCycleStart = Date.now();
     try {
       let currentThreads = await collectData(prevThreads);
+      yield currentThreads;
       prevThreads = currentThreads;
     } catch (e) {
       utils.handleError(e);
@@ -74,8 +80,6 @@ async function* nextCycle() {
       // before the next cycle is run
       lastCycleStart = Date.now() - (process.env.CYCLE_TIME - 5000);
     }
-
-    yield;
   }
 }
 
@@ -92,7 +96,9 @@ async function start(retryTimeOut = 5000) {
   try {
     logger.info("Start cycle generator");
     //start cycle generator
-    for await (const cycle of nextCycle()) {
+    for await (const currentThreads of nextCycle()) {
+      const activeThreads = threads.getActiveThreads(currentThreads);
+      apiServer.postMessage(activeThreads);
     }
   } catch (e) {
     utils.handleError(e);
@@ -138,4 +144,5 @@ async function main() {
   });
 }
 
+var apiServer = new Worker("./api/server.js");
 main();
