@@ -47,8 +47,8 @@ async function calculateToxicity(text) {
       return p.results[0].probabilities[1] / discount;
     })
   );
-  console.log(JSON.stringify(predictions));
-  console.log(result);
+  // console.log(JSON.stringify(predictions));
+  // console.log(result);
   return result;
 }
 

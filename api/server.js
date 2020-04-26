@@ -5,11 +5,9 @@ const { parentPort } = require("worker_threads");
 const fs = require("fs");
 const express = require("express");
 const path = require("path");
-const Redis = require("ioredis");
-const redis = new Redis();
+const { RateLimiterMemory } = require("rate-limiter-flexible");
 const logger = require("../utils/logger");
 const utils = require("../utils/misc");
-const threads = require("../libs/threads");
 const PostStatistic = require("../models/PostStatistic");
 const TextEntry = require("../models/TextEntry");
 
@@ -36,11 +34,10 @@ async function getPpm() {
     (res[0].lastDate.getTime() - res[0].firstDate.getTime()) / 1000 / 60 || 1;
   return res[0].total / timeSpan;
 }
-getPpm();
 
 async function getBasedness(threadIds) {
   const res = await TextEntry.aggregate([
-    { $match: { threadId: { $in: Object.keys(threadIds) } } },
+    { $match: { threadId: { $in: threadIds } } },
     {
       $group: {
         _id: null,
@@ -56,7 +53,7 @@ async function getBasedness(threadIds) {
   return res[0].basedSum / res[0].totalThreads;
 }
 
-var latestData = {};
+var latestData = { activeThreads: null, ppm: 0, basedness: 0 };
 
 const httpsOptions = {
   key: fs.readFileSync(path.resolve(process.env.KEY)),
@@ -91,9 +88,28 @@ if (process.env.NODE_ENV !== "production") {
   });
 }
 
+const rateLimiter = new RateLimiterMemory({
+  points: 5, // 5 points
+  duration: 1, // per second
+});
+
+io.use(async function (socket, next) {
+  try {
+    await rateLimiter.consume(socket.id);
+    next();
+  } catch (e) {
+    socket.emit("disconnected", true);
+    socket.disconnect(true);
+  }
+});
+
 io.on("connection", async function (socket) {
-  console.log("connected");
-  console.log(socket.handshake);
+  try {
+    await rateLimiter.consume(socket.handshake.address);
+  } catch (e) {
+    socket.emit("disconnected", true);
+    socket.disconnect(true);
+  }
 });
 
 const port = process.env.PORT || 2096;
