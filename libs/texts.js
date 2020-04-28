@@ -97,4 +97,5 @@ async function proc(textList) {
 
 module.exports = {
   proc,
+  stripHtml,
 };

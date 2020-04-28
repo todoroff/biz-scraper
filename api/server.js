@@ -2,14 +2,19 @@
 
 require("../utils/connectDb")();
 const { parentPort } = require("worker_threads");
+const workerpool = require("workerpool");
 const fs = require("fs");
 const express = require("express");
 const path = require("path");
 const { RateLimiterMemory } = require("rate-limiter-flexible");
 const logger = require("../utils/logger");
 const utils = require("../utils/misc");
+const wf = require("word-freq");
+const texts = require("../libs/texts");
 const PostStatistic = require("../models/PostStatistic");
 const TextEntry = require("../models/TextEntry");
+
+const pool = workerpool.pool(__dirname + "/worker.js");
 
 //get posts per minute over the last 30 min
 async function getPpm() {
@@ -54,7 +59,25 @@ async function getBasedness(threadIds) {
   return basedness;
 }
 
-var latestData = { activeThreads: null, ppm: 0, basedness: 0 };
+async function get24hWordCloud() {
+  const res = await TextEntry.aggregate([
+    { $match: { date: { $gte: new Date(Date.now() - 1000 * 60 * 60 * 24) } } },
+    {
+      $group: {
+        _id: null,
+        text: {
+          $push: "$content",
+        },
+      },
+    },
+  ]);
+
+  const wordCloud =
+    res && res.length ? await pool.exec("wordCloud", [res[0].text]) : null;
+  return wordCloud;
+}
+
+var latestData = { activeThreads: null, ppm: 0, basedness: 0, wordCloud: null };
 
 const httpsOptions = {
   key: fs.readFileSync(path.resolve(process.env.KEY)),
@@ -69,7 +92,8 @@ parentPort.on("message", async (msg) => {
     const { currentThreads, activeThreads } = msg;
     const ppm = await getPpm();
     const basedness = await getBasedness(Object.keys(currentThreads).map(Number));
-    latestData = { activeThreads, ppm, basedness };
+    const wordCloud = await get24hWordCloud();
+    latestData = { activeThreads, ppm, basedness, wordCloud };
     io.emit("latestData", latestData);
   } catch (e) {
     utils.handleError(e);

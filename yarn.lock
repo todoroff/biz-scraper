@@ -3626,6 +3626,24 @@ standard-as-callback@^2.0.1:
   resolved "https://registry.yarnpkg.com/statuses/-/statuses-1.5.0.tgz#161c7dac177659fd9811f43771fa99381478628c"
   integrity sha1-Fhx9rBd2Wf2YEfQ3cfqZOBR4Yow=
 
+stem-porter@0.0.1:
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/stem-porter/-/stem-porter-0.0.1.tgz#591a8b0d696c34252af593535228430a34de7001"
+  integrity sha1-WRqLDWlsNCUq9ZNTUihDCjTecAE=
+
+stm@0.x.x:
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/stm/-/stm-0.0.3.tgz#0480d85f387cb9356cced09f4fa0c240f51a5eca"
+  integrity sha1-BIDYXzh8uTVsztCfT6DCQPUaXso=
+  dependencies:
+    stem-porter "0.0.1"
+    tkn "0.x.x"
+
+stopwords@*:
+  version "0.0.9"
+  resolved "https://registry.yarnpkg.com/stopwords/-/stopwords-0.0.9.tgz#d2ceb30c778b3b12896d476a0ca5e9946141b5e3"
+  integrity sha512-2OF7/9f5buXrBB8De5ZAC9+g5nIw9SRx9ZsL3Qpz6znSfPEihOmaMnwJxXehynZ9AfRNroHIKEIcsEmRywVXVQ==
+
 strict-uri-encode@^1.0.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/strict-uri-encode/-/strict-uri-encode-1.1.0.tgz#279b225df1d582b1f54e65addd4352e18faa0713"
@@ -3815,6 +3833,13 @@ timed-out@^4.0.0, timed-out@^4.0.1:
   version "4.0.1"
   resolved "https://registry.yarnpkg.com/timed-out/-/timed-out-4.0.1.tgz#f32eacac5a175bea25d7fab565ab3ed8741ef56f"
   integrity sha1-8y6srFoXW+ol1/q1Zas+2HQe9W8=
+
+tkn@0.x.x:
+  version "0.0.5"
+  resolved "https://registry.yarnpkg.com/tkn/-/tkn-0.0.5.tgz#b8e05f137608ae5782ac6d03d08f7abd7d863e79"
+  integrity sha1-uOBfE3YIrleCrG0D0I96vX2GPnk=
+  dependencies:
+    stopwords "*"
 
 to-array@0.1.4:
   version "0.1.4"
@@ -4030,6 +4055,18 @@ winston@^3.2.1:
     stack-trace "0.0.x"
     triple-beam "^1.3.0"
     winston-transport "^4.3.0"
+
+word-freq@^0.0.8:
+  version "0.0.8"
+  resolved "https://registry.yarnpkg.com/word-freq/-/word-freq-0.0.8.tgz#d3f125d9a5b25c181958e0789810777ad0b654cc"
+  integrity sha1-0/El2aWyXBgZWOB4mBB3etC2VMw=
+  dependencies:
+    stm "0.x.x"
+
+workerpool@^5.0.4:
+  version "5.0.4"
+  resolved "https://registry.yarnpkg.com/workerpool/-/workerpool-5.0.4.tgz#4f67cb70ff7550a27ab94de25b0b843cd92059a2"
+  integrity sha512-Sywova24Ow2NQ24JPB68bI89EdqMDjUXo4OpofK/QMD7C2ZVMloYBgQ5J3PChcBJHj2vspsmGx1/3nBKXtUkXQ==
 
 wrappy@1:
   version "1.0.2"
