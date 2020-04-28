@@ -16,10 +16,10 @@ const TextEntry = require("../models/TextEntry");
 
 const pool = workerpool.pool(__dirname + "/worker.js");
 
-//get posts per minute over the last 30 min
+//get posts per minute over the last 60 min
 async function getPpm() {
   const res = await PostStatistic.aggregate([
-    { $match: { date: { $gte: new Date(Date.now() - 1000 * 60 * 30) } } },
+    { $match: { date: { $gte: new Date(Date.now() - 1000 * 60 * 60) } } },
     {
       $group: {
         _id: null,
@@ -77,7 +77,9 @@ async function get24hWordCloud() {
   return wordCloud;
 }
 
-var latestData = { activeThreads: null, ppm: 0, basedness: 0, wordCloud: null };
+var latestData = JSON.parse(
+  fs.readFileSync(path.resolve(__dirname, "latest-cache.json"))
+);
 
 const httpsOptions = {
   key: fs.readFileSync(path.resolve(process.env.KEY)),
@@ -95,6 +97,10 @@ parentPort.on("message", async (msg) => {
     const wordCloud = await get24hWordCloud();
     latestData = { activeThreads, ppm, basedness, wordCloud };
     io.emit("latestData", latestData);
+    await fs.promises.writeFile(
+      path.resolve(__dirname, "latest-cache.json"),
+      JSON.stringify(latestData)
+    );
   } catch (e) {
     utils.handleError(e);
   }

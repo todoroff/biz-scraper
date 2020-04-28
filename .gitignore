@@ -6,3 +6,4 @@ downloads/
 .prettierrc
 .env
 sandbox.js
+latest-cache.json
