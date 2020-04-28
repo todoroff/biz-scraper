@@ -50,7 +50,8 @@ async function getBasedness(threadIds) {
       },
     },
   ]);
-  return res[0].basedSum / res[0].totalThreads;
+  const basedness = res && res.length ? res[0].basedSum / res[0].totalThreads : 0;
+  return basedness;
 }
 
 var latestData = { activeThreads: null, ppm: 0, basedness: 0 };
@@ -67,7 +68,7 @@ parentPort.on("message", async (msg) => {
   try {
     const { currentThreads, activeThreads } = msg;
     const ppm = await getPpm();
-    const basedness = await getBasedness(Object.keys(currentThreads));
+    const basedness = await getBasedness(Object.keys(currentThreads).map(Number));
     latestData = { activeThreads, ppm, basedness };
     io.emit("latestData", latestData);
   } catch (e) {
@@ -110,6 +111,10 @@ io.on("connection", async function (socket) {
     socket.emit("disconnected", true);
     socket.disconnect(true);
   }
+
+  socket.on("latestData", (payload, cb) => {
+    cb(latestData);
+  });
 });
 
 const port = process.env.PORT || 2096;
