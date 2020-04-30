@@ -77,7 +77,7 @@ async function get24hWordCloud() {
   return wordCloud;
 }
 
-var latestData = JSON.parse(
+var { latestData, wordCloud } = JSON.parse(
   fs.readFileSync(path.resolve(__dirname, "latest-cache.json"))
 );
 
@@ -94,12 +94,12 @@ parentPort.on("message", async (msg) => {
     const { currentThreads, activeThreads } = msg;
     const ppm = await getPpm();
     const basedness = await getBasedness(Object.keys(currentThreads).map(Number));
-    const wordCloud = await get24hWordCloud();
-    latestData = { activeThreads, ppm, basedness, wordCloud };
+    wordCloud = await get24hWordCloud();
+    latestData = { activeThreads, ppm, basedness };
     io.emit("latestData", latestData);
     await fs.promises.writeFile(
       path.resolve(__dirname, "latest-cache.json"),
-      JSON.stringify(latestData)
+      JSON.stringify({ latestData, wordCloud })
     );
   } catch (e) {
     utils.handleError(e);
@@ -144,6 +144,9 @@ io.on("connection", async function (socket) {
 
   socket.on("latestData", (payload, cb) => {
     cb(latestData);
+  });
+  socket.on("wordCloud", (payload, cb) => {
+    cb(wordCloud);
   });
 });
 
