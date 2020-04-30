@@ -26,14 +26,26 @@ const ignore = new Set([
   "gonna",
   "io",
   "biz",
+  "didn",
+  "t",
+  "s",
+  "thread",
+  "ll",
+  "embed",
+  "doesn",
+  "lot",
+  "man",
 ]);
-console.log(ignore.has("gur"));
 
 function wordCloud(strings) {
-  let text = strings.join(" ").toLowerCase();
+  // for each post take repeating words within the post only once
+  // concat everything into 1 big string
+  let text = strings
+    .map((t) => Array.from(new Set(t.split(" "))).join(" "))
+    .join(" ")
+    .toLowerCase();
   text = texts.stripHtml(text);
   const frequency = wf.freq(text, true, false);
-  console.log(frequency["gur"]);
   return Object.keys(frequency)
     .filter((w) => !ignore.has(w) && isNaN(Number(w)))
     .sort(function (a, b) {
@@ -45,10 +57,10 @@ function wordCloud(strings) {
       }
       return 0;
     })
-    .slice(0, 50)
-    .reduce((acc, w) => {
-      return Object.assign(acc, { [w]: frequency[w] });
-    }, {});
+    .slice(0, 300)
+    .map((w) => {
+      return { word: w, count: frequency[w] };
+    });
 }
 
 workerpool.worker({
