@@ -40,6 +40,7 @@ function transformPages(pageList) {
       return Object.assign(acc2, {
         [thread.no]: {
           ...thread,
+          last_replies: undefined,
         },
       });
     }, {});
