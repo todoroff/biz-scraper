@@ -2,6 +2,7 @@
 
 require("../utils/connectDb")();
 const { parentPort } = require("worker_threads");
+const axios = require("axios");
 const workerpool = require("workerpool");
 const fs = require("fs");
 const express = require("express");
@@ -18,68 +19,136 @@ const pool = workerpool.pool(__dirname + "/worker.js");
 
 //get posts per minute over the last 60 min
 async function getPpm() {
-  const res = await PostStatistic.aggregate([
-    { $match: { date: { $gte: new Date(Date.now() - 1000 * 60 * 60) } } },
-    {
-      $group: {
-        _id: null,
-        total: {
-          $sum: "$newPosts",
-        },
-        firstDate: {
-          $first: "$date",
-        },
-        lastDate: {
-          $last: "$date",
+  try {
+    const res = await PostStatistic.aggregate([
+      { $match: { date: { $gte: new Date(Date.now() - 1000 * 60 * 60) } } },
+      {
+        $group: {
+          _id: null,
+          total: {
+            $sum: "$newPosts",
+          },
+          firstDate: {
+            $first: "$date",
+          },
+          lastDate: {
+            $last: "$date",
+          },
         },
       },
-    },
-  ]);
-  const timeSpan =
-    (res[0].lastDate.getTime() - res[0].firstDate.getTime()) / 1000 / 60 || 1;
-  return res[0].total / timeSpan;
+    ]);
+    const timeSpan =
+      (res[0].lastDate.getTime() - res[0].firstDate.getTime()) / 1000 / 60 || 1;
+    return res[0].total / timeSpan;
+  } catch (e) {
+    utils.handleError(e);
+  }
 }
 
 async function getBasedness(threadIds) {
-  const res = await TextEntry.aggregate([
-    { $match: { threadId: { $in: threadIds } } },
-    {
-      $group: {
-        _id: null,
-        basedSum: {
-          $sum: "$toxicity",
-        },
-        totalThreads: {
-          $sum: 1,
+  try {
+    const res = await TextEntry.aggregate([
+      { $match: { threadId: { $in: threadIds } } },
+      {
+        $group: {
+          _id: null,
+          basedSum: {
+            $sum: "$toxicity",
+          },
+          totalThreads: {
+            $sum: 1,
+          },
         },
       },
-    },
-  ]);
-  const basedness = res && res.length ? res[0].basedSum / res[0].totalThreads : 0;
-  return basedness;
+    ]);
+    const basedness = res && res.length ? res[0].basedSum / res[0].totalThreads : 0;
+    return basedness;
+  } catch (e) {
+    utils.handleError(e);
+  }
 }
 
 async function get24hWordCloud() {
-  const res = await TextEntry.aggregate([
-    { $match: { date: { $gte: new Date(Date.now() - 1000 * 60 * 60 * 24) } } },
-    {
-      $group: {
-        _id: null,
-        text: {
-          $push: "$content",
+  try {
+    const res = await TextEntry.aggregate([
+      { $match: { date: { $gte: new Date(Date.now() - 1000 * 60 * 60 * 24) } } },
+      {
+        $group: {
+          _id: null,
+          text: {
+            $push: "$content",
+          },
         },
       },
-    },
-  ]);
+    ]);
 
-  const wordCloud =
-    res && res.length ? await pool.exec("wordCloud", [res[0].text]) : null;
-  return wordCloud;
+    const wordCloud =
+      res && res.length ? await pool.exec("wordCloud", [res[0].text]) : null;
+    return wordCloud;
+  } catch (e) {
+    utils.handleError(e);
+  }
 }
 
-var { latestData, wordCloud } = JSON.parse(
+async function getBtcHistory(timeframe) {
+  try {
+    const res = await axios.get(
+      `https://api.coinranking.com/v1/public/coin/1/history/${timeframe}`
+    );
+    return res.data.data;
+  } catch (e) {
+    utils.handleError(e);
+  }
+}
+
+async function set5yData() {
+  btc5y = (await getBtcHistory("5y")) || btc5y;
+  newPosts5y = (await getNewPosts5y()) || newPosts5y;
+  try {
+    await fs.promises.writeFile(
+      path.resolve(__dirname, "latest-cache.json"),
+      JSON.stringify({ latestData, wordCloud, btc5y, newPosts5y })
+    );
+  } catch (e) {
+    utils.handleError(e);
+  }
+}
+
+async function getNewPosts5y() {
+  try {
+    const res = await PostStatistic.aggregate([
+      {
+        $match: {
+          date: {
+            $gte: new Date(new Date().setFullYear(new Date().getFullYear() - 5)),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            $subtract: [
+              { $toLong: "$date" },
+              { $mod: [{ $toLong: "$date" }, 1000 * 60 * 60 * 24] },
+            ],
+          },
+          count: { $sum: "$newPosts" },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+    return res;
+  } catch (e) {
+    utils.handleError(e);
+  }
+}
+
+var { latestData, wordCloud, btc5y, newPosts5y } = JSON.parse(
   fs.readFileSync(path.resolve(__dirname, "latest-cache.json"))
 );
+
+set5yData();
+setInterval(set5yData, 1000 * 60 * 60);
 
 const httpsOptions = {
   key: fs.readFileSync(path.resolve(process.env.KEY)),
@@ -90,16 +159,20 @@ const server = require("https").createServer(httpsOptions, app);
 const io = require("socket.io")(server);
 
 parentPort.on("message", async (msg) => {
+  const { currentThreads, activeThreads } = msg;
+  const ppm = (await getPpm()) || latestData.ppm;
+  const basedness =
+    (await getBasedness(Object.keys(currentThreads).map(Number))) ||
+    latestData.basedness;
+  const btcPriceChange = (await getBtcHistory("24h")).change || btcPriceChange;
+  latestData = { activeThreads, ppm, basedness, btcPriceChange };
+  wordCloud = (await get24hWordCloud()) || wordCloud;
+  io.emit("latestData", latestData);
+  io.emit("btcPriceChange", btcPriceChange);
   try {
-    const { currentThreads, activeThreads } = msg;
-    const ppm = await getPpm();
-    const basedness = await getBasedness(Object.keys(currentThreads).map(Number));
-    wordCloud = await get24hWordCloud();
-    latestData = { activeThreads, ppm, basedness };
-    io.emit("latestData", latestData);
     await fs.promises.writeFile(
       path.resolve(__dirname, "latest-cache.json"),
-      JSON.stringify({ latestData, wordCloud })
+      JSON.stringify({ latestData, wordCloud, btc5y, newPosts5y })
     );
   } catch (e) {
     utils.handleError(e);
@@ -114,8 +187,8 @@ if (process.env.NODE_ENV !== "production") {
     )
   );
 
-  app.get("/latest", (req, res) => {
-    res.json(latestData);
+  app.get("/allz", (req, res) => {
+    res.json({ latestData, wordCloud, btc5y, newPosts5y });
   });
 }
 
@@ -147,6 +220,12 @@ io.on("connection", async function (socket) {
   });
   socket.on("wordCloud", (payload, cb) => {
     cb(wordCloud);
+  });
+  socket.on("btc5y", async (payload, cb) => {
+    cb(btc5y);
+  });
+  socket.on("newPosts5y", async (payload, cb) => {
+    cb(newPosts5y);
   });
 });
 
