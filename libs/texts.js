@@ -40,7 +40,7 @@ async function calculateToxicity(text) {
           break;
         case "obscene":
         case "sexual_explicit":
-          discount = 1.5;
+          discount = 1.25;
           break;
         default:
           discount = 1;
