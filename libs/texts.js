@@ -29,9 +29,11 @@ async function calculateToxicity(text) {
     ...predictions.map((p) => {
       var discount;
       switch (p.label) {
+        case "severe_toxicity":
+          discount = 0.25;
+          break;
         case "identity_attack":
         case "insult":
-        case "severe_toxicity":
         case "threat":
         case "toxicity":
           discount = 1;
