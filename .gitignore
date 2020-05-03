@@ -7,3 +7,4 @@ downloads/
 .env
 sandbox.js
 latest-cache.json
+init-threads.json

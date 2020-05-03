@@ -9,7 +9,8 @@ const mongoose = require("mongoose");
 const connectDb = require("./utils/connectDb");
 const images = require("./libs/images");
 const texts = require("./libs/texts");
-
+const fs = require("fs");
+const path = require("path");
 /**
  * Collect /biz/ data and save to DB
  *
@@ -63,7 +64,9 @@ async function collectData(prevThreads) {
 
 async function* nextCycle() {
   // init values
-  const initThreads = await threads.getCurrentThreads();
+  const initThreads = JSON.parse(
+    await fs.promises.readFile(path.resolve(__dirname, "init-threads.json"))
+  );
   var prevThreads = initThreads;
   var lastCycleStart = Date.now();
 
@@ -99,6 +102,14 @@ async function start(retryTimeOut = 5000) {
     for await (const currentThreads of nextCycle()) {
       const activeThreads = threads.getActiveThreads(currentThreads);
       apiServer.postMessage({ currentThreads, activeThreads });
+      try {
+        await fs.promises.writeFile(
+          path.resolve(__dirname, "init-threads.json"),
+          JSON.stringify(currentThreads)
+        );
+      } catch (e) {
+        utils.handleError(e);
+      }
     }
   } catch (e) {
     utils.handleError(e);
