@@ -20,39 +20,41 @@ const toxicityModel = require("@tensorflow-models/toxicity");
  * @returns {Promise.<Number>} A number between 0 and 1
  */
 
-async function calculateToxicity(text) {
-  // Load the model. Users optionally pass in a threshold and an array of
-  // labels to include.
-  const model = await toxicityModel.load();
-  const predictions = await model.classify(text);
-  const result = Math.max(
-    ...predictions.map((p) => {
-      var discount;
-      switch (p.label) {
-        case "severe_toxicity":
-          discount = 0.25;
-          break;
-        case "identity_attack":
-        case "insult":
-        case "threat":
-        case "toxicity":
-          discount = 1;
-          break;
-        case "obscene":
-        case "sexual_explicit":
-          discount = 1.25;
-          break;
-        default:
-          discount = 1;
-          break;
-      }
-      return p.results[0].probabilities[1] / discount;
-    })
-  );
-  // console.log(JSON.stringify(predictions));
-  // console.log(result);
-  return result;
-}
+var calculateToxicity = (function calculateToxicityWrapper() {
+  var model;
+  async function caluclateToxicity(text) {
+    // model memoization
+    model = model || (await toxicityModel.load());
+
+    const predictions = await model.classify(text);
+    const result = Math.max(
+      ...predictions.map((p) => {
+        var discount;
+        switch (p.label) {
+          case "severe_toxicity":
+            discount = 0.25;
+            break;
+          case "identity_attack":
+          case "insult":
+          case "threat":
+          case "toxicity":
+            discount = 1;
+            break;
+          case "obscene":
+          case "sexual_explicit":
+            discount = 1.25;
+            break;
+          default:
+            discount = 1;
+            break;
+        }
+        return p.results[0].probabilities[1] / discount;
+      })
+    );
+    return result;
+  }
+  return caluclateToxicity;
+})();
 
 /**
  * Remove HTML tags from text
