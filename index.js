@@ -141,7 +141,7 @@ async function main() {
       await images.cleanUp();
       logger.info("Finished cleanup");
     } catch (e) {
-      handleError(e);
+      utils.handleError(e);
       logger.info("Error during cleanup");
     }
   }, 1000 * 60 * 60 * 24);

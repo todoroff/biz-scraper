@@ -156,10 +156,10 @@ async function cleanUp(olderThanDays = 1) {
     try {
       await redis.del(entry.hash);
       await ImageEntry.deleteOne({ _id: ObjectId(entry._id) });
-      await ImageEncounter.deleteOne({ entryId: ObjectId(entry._id) });
+      //await ImageEncounter.deleteOne({ entryId: ObjectId(entry._id) });
       await unlink(path.resolve(DOWNLOAD_DIR, "optimized", entry.fileName));
     } catch (e) {
-      handleError(e);
+      utils.handleError(e);
     }
   }
   return mongoEntries;
