@@ -177,7 +177,7 @@ function getThreadsTexts(threadIds, threads) {
 
 /**
  * Get the 5 threads with the highest rpm,
- * that have been active in the last 30 minutes
+ * that have been started in the last 30 minutes
  *
  * @function getActiveThreads
  * @param {Object} currentThreads Object with current threads
@@ -188,7 +188,7 @@ function getActiveThreads(currentThreads) {
   const now = Date.now();
   const activeThreads = Object.keys(currentThreads)
     .map((id) => currentThreads[id])
-    .filter((thread) => thread.last_modified > (now - 1000 * 60 * 30) / 1000)
+    .filter((thread) => thread.time > (now - 1000 * 60 * 30) / 1000)
     .filter((thread) => thread.replies > 5)
     .sort((a, b) => {
       if (a.replies / (now / 1000 - a.time) > b.replies / (now / 1000 - b.time))
