@@ -14,6 +14,7 @@ const wf = require("word-freq");
 const texts = require("../libs/texts");
 const PostStatistic = require("../models/PostStatistic");
 const TextEntry = require("../models/TextEntry");
+const ObjectId = require("mongoose").Types.ObjectId;
 
 const pool = workerpool.pool(__dirname + "/worker.js");
 
@@ -45,7 +46,7 @@ async function getPpm() {
   }
 }
 
-async function getBasedness(threadIds) {
+async function getAvgBasedness(threadIds) {
   try {
     const res = await TextEntry.aggregate([
       { $match: { threadId: { $in: threadIds } } },
@@ -63,6 +64,16 @@ async function getBasedness(threadIds) {
     ]);
     const basedness = res && res.length ? res[0].basedSum / res[0].totalThreads : 0;
     return basedness;
+  } catch (e) {
+    utils.handleError(e);
+  }
+}
+
+async function getBasedness(threadId) {
+  try {
+    const res = await TextEntry.findOne({ threadId: threadId });
+    console.log(res);
+    return res.toxicity;
   } catch (e) {
     utils.handleError(e);
   }
@@ -143,13 +154,6 @@ async function getNewPosts5y() {
   }
 }
 
-var { latestData, wordCloud, btc5y, newPosts5y } = JSON.parse(
-  fs.readFileSync(path.resolve(__dirname, "latest-cache.json"))
-);
-
-set5yData();
-setInterval(set5yData, 1000 * 60 * 60);
-
 const httpsOptions = {
   key: fs.readFileSync(path.resolve(process.env.KEY)),
   cert: fs.readFileSync(path.resolve(process.env.CERT)),
@@ -158,11 +162,24 @@ const app = express();
 const server = require("https").createServer(httpsOptions, app);
 const io = require("socket.io")(server);
 
+var { latestData, wordCloud, btc5y, newPosts5y } = JSON.parse(
+  fs.readFileSync(path.resolve(__dirname, "latest-cache.json"))
+);
+
+set5yData();
+setInterval(set5yData, 1000 * 60 * 30);
+
 parentPort.on("message", async (msg) => {
   const { currentThreads, activeThreads } = msg;
+
+  for (const [i, at] of activeThreads.entries()) {
+    const b = await getBasedness(at.no);
+    activeThreads[i] = { ...at, basedness: b };
+  }
+
   const ppm = (await getPpm()) || latestData.ppm;
   const basedness =
-    (await getBasedness(Object.keys(currentThreads).map(Number))) ||
+    (await getAvgBasedness(Object.keys(currentThreads).map(Number))) ||
     latestData.basedness;
   const btcPriceChange = (await getBtcHistory("24h")).change || btcPriceChange;
   latestData = { activeThreads, ppm, basedness, btcPriceChange };
