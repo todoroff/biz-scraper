@@ -45,9 +45,7 @@ async function collectData(prevThreads) {
     await Promise.all(operations);
   } catch (e) {}
 
-  console.log("New threads: " + newThreadIds.length);
-  console.log("New texts: " + JSON.stringify(newTexts));
-  console.log(newThreadIds);
+  logger.info(`Successful cycle: ${newThreadIds.length} new threads`);
 
   return { ...currentThreads };
 }

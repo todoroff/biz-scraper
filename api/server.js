@@ -72,7 +72,6 @@ async function getAvgBasedness(threadIds) {
 async function getBasedness(threadId) {
   try {
     const res = await TextEntry.findOne({ threadId: threadId });
-    console.log(res);
     return res.toxicity;
   } catch (e) {
     utils.handleError(e);

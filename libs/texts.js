@@ -7,6 +7,9 @@
 const utils = require("../utils/misc");
 const htmlToText = require("html-to-text");
 const TextEntry = require("../models/TextEntry");
+if (process.env.NODE_ENV !== "production") {
+  require("@tensorflow/tfjs-node");
+}
 const toxicityModel = require("@tensorflow-models/toxicity");
 
 /**
