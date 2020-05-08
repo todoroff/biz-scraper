@@ -195,14 +195,14 @@ parentPort.on("message", async (msg) => {
   }
 });
 
-if (process.env.NODE_ENV !== "production") {
-  app.use(
-    "/media",
-    express.static(
-      path.resolve(__dirname, "../", process.env.DOWNLOAD_DIR, "optimized")
-    )
-  );
+app.use(
+  "/media",
+  express.static(
+    path.resolve(__dirname, "../", process.env.DOWNLOAD_DIR, "optimized")
+  )
+);
 
+if (process.env.NODE_ENV !== "production") {
   app.get("/allz", (req, res) => {
     res.json({ latestData, wordCloud, btc5y, newPosts5y });
   });
