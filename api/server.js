@@ -10,11 +10,8 @@ const path = require("path");
 const { RateLimiterMemory } = require("rate-limiter-flexible");
 const logger = require("../utils/logger");
 const utils = require("../utils/misc");
-const wf = require("word-freq");
-const texts = require("../libs/texts");
 const PostStatistic = require("../models/PostStatistic");
 const TextEntry = require("../models/TextEntry");
-const ObjectId = require("mongoose").Types.ObjectId;
 
 const pool = workerpool.pool(__dirname + "/worker.js");
 
