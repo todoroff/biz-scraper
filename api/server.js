@@ -1,6 +1,7 @@
 "use strict";
 
 require("../utils/connectDb")();
+const cors = require("cors");
 const { parentPort } = require("worker_threads");
 const axios = require("axios");
 const workerpool = require("workerpool");
@@ -191,6 +192,8 @@ parentPort.on("message", async (msg) => {
     utils.handleError(e);
   }
 });
+
+app.use(cors());
 
 app.use(
   "/media",
