@@ -109,7 +109,7 @@ async function getBtcHistory(timeframe) {
   }
 }
 
-async function getNewPosts5y() {
+async function getPostStats5y() {
   try {
     const res = await PostStatistic.aggregate([
       {
@@ -127,7 +127,9 @@ async function getNewPosts5y() {
               { $mod: [{ $toLong: "$date" }, 1000 * 60 * 60 * 24] },
             ],
           },
-          count: { $sum: "$newPosts" },
+          postsCount: { $sum: "$newPosts" },
+          threadsCount: { $sum: "$newThreads" },
+          repliesCount: { $sum: "$newReplies" },
         },
       },
       { $sort: { _id: 1 } },
@@ -140,14 +142,14 @@ async function getNewPosts5y() {
 
 async function set5yData() {
   apiData.btc5y = (await getBtcHistory("5y")) || apiData.btc5y;
-  apiData.newPosts5y = (await getNewPosts5y()) || apiData.newPosts5y;
+  apiData.postStats5y = (await getPostStats5y()) || apiData.postStats5y;
   try {
     await fs.promises.writeFile(
       path.resolve(__dirname, "latest-cache.json"),
       JSON.stringify({
         ...apiData,
         btc5y: apiData.btc5y,
-        newPosts5y: apiData.newPosts5y,
+        postStats5y: apiData.postStats5y,
       })
     );
   } catch (e) {
@@ -164,7 +166,7 @@ const server = require("https").createServer(httpsOptions, app);
 const io = require("socket.io")(server);
 
 //initialize api data
-//var { latestData, wordCloud, btc5y, newPosts5y }
+//var { latestData, wordCloud, btc5y, postStats5y }
 var apiData = JSON.parse(
   fs.readFileSync(path.resolve(__dirname, "latest-cache.json"))
 );
@@ -250,8 +252,8 @@ io.on("connection", async function (socket) {
   socket.on("btc5y", async (payload, cb) => {
     cb(apiData.btc5y);
   });
-  socket.on("newPosts5y", async (payload, cb) => {
-    cb(apiData.newPosts5y);
+  socket.on("postStats5y", async (payload, cb) => {
+    cb(apiData.postStats5y);
   });
 });
 
