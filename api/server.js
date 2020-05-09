@@ -110,12 +110,16 @@ async function getBtcHistory(timeframe) {
 }
 
 async function set5yData() {
-  btc5y = (await getBtcHistory("5y")) || btc5y;
-  newPosts5y = (await getNewPosts5y()) || newPosts5y;
+  apiData.btc5y = (await getBtcHistory("5y")) || apiData.btc5y;
+  apiData.newPosts5y = (await getNewPosts5y()) || apiData.newPosts5y;
   try {
     await fs.promises.writeFile(
       path.resolve(__dirname, "latest-cache.json"),
-      JSON.stringify({ latestData, wordCloud, btc5y, newPosts5y })
+      JSON.stringify({
+        ...apiData,
+        btc5y: apiData.btc5y,
+        newPosts5y: apiData.newPosts5y,
+      })
     );
   } catch (e) {
     utils.handleError(e);
@@ -159,7 +163,9 @@ const app = express();
 const server = require("https").createServer(httpsOptions, app);
 const io = require("socket.io")(server);
 
-var { latestData, wordCloud, btc5y, newPosts5y } = JSON.parse(
+//initialize api data
+//var { latestData, wordCloud, btc5y, newPosts5y }
+var apiData = JSON.parse(
   fs.readFileSync(path.resolve(__dirname, "latest-cache.json"))
 );
 
@@ -174,19 +180,21 @@ parentPort.on("message", async (msg) => {
     activeThreads[i] = { ...at, basedness: b };
   }
 
-  const ppm = (await getPpm()) || latestData.ppm;
+  const ppm = (await getPpm()) || apiData.latestData.ppm;
   const basedness =
     (await getAvgBasedness(Object.keys(currentThreads).map(Number))) ||
-    latestData.basedness;
+    apiData.latestData.basedness;
   const btcPriceChange = (await getBtcHistory("24h")).change || btcPriceChange;
-  latestData = { activeThreads, ppm, basedness, btcPriceChange };
-  wordCloud = (await get24hWordCloud()) || wordCloud;
-  io.emit("latestData", latestData);
-  io.emit("btcPriceChange", btcPriceChange);
+
+  apiData.latestData = { activeThreads, ppm, basedness, btcPriceChange };
+  apiData.wordCloud = (await get24hWordCloud()) || apiData.wordCloud;
+  io.emit("latestData", apiData.latestData);
+
+  //cache it
   try {
     await fs.promises.writeFile(
       path.resolve(__dirname, "latest-cache.json"),
-      JSON.stringify({ latestData, wordCloud, btc5y, newPosts5y })
+      JSON.stringify(apiData)
     );
   } catch (e) {
     utils.handleError(e);
@@ -204,7 +212,7 @@ app.use(
 
 if (process.env.NODE_ENV !== "production") {
   app.get("/allz", (req, res) => {
-    res.json({ latestData, wordCloud, btc5y, newPosts5y });
+    res.json(apiData);
   });
 }
 
@@ -234,16 +242,16 @@ io.on("connection", async function (socket) {
   }
 
   socket.on("latestData", (payload, cb) => {
-    cb(latestData);
+    cb(apiData.latestData);
   });
   socket.on("wordCloud", (payload, cb) => {
-    cb(wordCloud);
+    cb(apiData.wordCloud);
   });
   socket.on("btc5y", async (payload, cb) => {
-    cb(btc5y);
+    cb(apiData.btc5y);
   });
   socket.on("newPosts5y", async (payload, cb) => {
-    cb(newPosts5y);
+    cb(apiData.newPosts5y);
   });
 });
 
