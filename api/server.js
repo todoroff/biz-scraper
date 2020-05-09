@@ -223,6 +223,8 @@ io.use(async function (socket, next) {
   }
 });
 
+io.origins("*:*");
+
 io.on("connection", async function (socket) {
   try {
     await rateLimiter.consume(socket.handshake.address);
