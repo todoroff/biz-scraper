@@ -11,6 +11,7 @@ const images = require("./libs/images");
 const texts = require("./libs/texts");
 const fs = require("fs");
 const path = require("path");
+const cleanUp = require("./utils/cleanUp");
 /**
  * Collect /biz/ data and save to DB
  *
@@ -131,18 +132,10 @@ async function main() {
   logger.info("MongoDB Connected");
   start();
 
-  //schedule cleanups
-  logger.info("Schedule cleanups");
-  setInterval(async () => {
-    logger.info("Begin cleanup");
-    try {
-      await images.cleanUp();
-      logger.info("Finished cleanup");
-    } catch (e) {
-      utils.handleError(e);
-      logger.info("Error during cleanup");
-    }
-  }, 1000 * 60 * 60 * 24);
+  //run & schedule cleanups
+  logger.info("Run & Schedule cleanups");
+  cleanUp();
+  setInterval(cleanUp, 1000 * 60 * 60 * 24);
 
   process.on("SIGINT", function () {
     mongoose.connection.close(function () {
