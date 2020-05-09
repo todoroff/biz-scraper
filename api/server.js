@@ -109,23 +109,6 @@ async function getBtcHistory(timeframe) {
   }
 }
 
-async function set5yData() {
-  apiData.btc5y = (await getBtcHistory("5y")) || apiData.btc5y;
-  apiData.newPosts5y = (await getNewPosts5y()) || apiData.newPosts5y;
-  try {
-    await fs.promises.writeFile(
-      path.resolve(__dirname, "latest-cache.json"),
-      JSON.stringify({
-        ...apiData,
-        btc5y: apiData.btc5y,
-        newPosts5y: apiData.newPosts5y,
-      })
-    );
-  } catch (e) {
-    utils.handleError(e);
-  }
-}
-
 async function getNewPosts5y() {
   try {
     const res = await PostStatistic.aggregate([
@@ -150,6 +133,23 @@ async function getNewPosts5y() {
       { $sort: { _id: 1 } },
     ]);
     return res;
+  } catch (e) {
+    utils.handleError(e);
+  }
+}
+
+async function set5yData() {
+  apiData.btc5y = (await getBtcHistory("5y")) || apiData.btc5y;
+  apiData.newPosts5y = (await getNewPosts5y()) || apiData.newPosts5y;
+  try {
+    await fs.promises.writeFile(
+      path.resolve(__dirname, "latest-cache.json"),
+      JSON.stringify({
+        ...apiData,
+        btc5y: apiData.btc5y,
+        newPosts5y: apiData.newPosts5y,
+      })
+    );
   } catch (e) {
     utils.handleError(e);
   }
