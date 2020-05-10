@@ -141,15 +141,15 @@ async function getPostStats5y() {
 }
 
 async function set5yData() {
-  apiData.btc5y = (await getBtcHistory("5y")) || apiData.btc5y;
-  apiData.postStats5y = (await getPostStats5y()) || apiData.postStats5y;
+  cache.btc5y = (await getBtcHistory("5y")) || cache.btc5y;
+  cache.postStats5y = (await getPostStats5y()) || cache.postStats5y;
   try {
     await fs.promises.writeFile(
       path.resolve(__dirname, "latest-cache.json"),
       JSON.stringify({
-        ...apiData,
-        btc5y: apiData.btc5y,
-        postStats5y: apiData.postStats5y,
+        ...cache,
+        btc5y: cache.btc5y,
+        postStats5y: cache.postStats5y,
       })
     );
   } catch (e) {
@@ -167,7 +167,7 @@ const io = require("socket.io")(server);
 
 //initialize api data
 //var { latestData, wordCloud, btc5y, postStats5y }
-var apiData = JSON.parse(
+var cache = JSON.parse(
   fs.readFileSync(path.resolve(__dirname, "latest-cache.json"))
 );
 
@@ -182,21 +182,21 @@ parentPort.on("message", async (msg) => {
     activeThreads[i] = { ...at, basedness: b };
   }
 
-  const ppm = (await getPpm()) || apiData.latestData.ppm;
+  const ppm = (await getPpm()) || cache.latestData.ppm;
   const basedness =
     (await getAvgBasedness(Object.keys(currentThreads).map(Number))) ||
-    apiData.latestData.basedness;
+    cache.latestData.basedness;
   const btcPriceChange = (await getBtcHistory("24h")).change || btcPriceChange;
 
-  apiData.latestData = { activeThreads, ppm, basedness, btcPriceChange };
-  apiData.wordCloud = (await get24hWordCloud()) || apiData.wordCloud;
-  io.emit("latestData", apiData.latestData);
+  cache.latestData = { activeThreads, ppm, basedness, btcPriceChange };
+  cache.wordCloud = (await get24hWordCloud()) || cache.wordCloud;
+  io.emit("latestData", cache.latestData);
 
-  //cache it
+  //save cache to disk
   try {
     await fs.promises.writeFile(
       path.resolve(__dirname, "latest-cache.json"),
-      JSON.stringify(apiData)
+      JSON.stringify(cache)
     );
   } catch (e) {
     utils.handleError(e);
@@ -214,7 +214,7 @@ app.use(
 
 if (process.env.NODE_ENV !== "production") {
   app.get("/allz", (req, res) => {
-    res.json(apiData);
+    res.json(cache);
   });
 }
 
@@ -244,16 +244,16 @@ io.on("connection", async function (socket) {
   }
 
   socket.on("latestData", (payload, cb) => {
-    cb(apiData.latestData);
+    cb(cache.latestData);
   });
   socket.on("wordCloud", (payload, cb) => {
-    cb(apiData.wordCloud);
+    cb(cache.wordCloud);
   });
   socket.on("btc5y", async (payload, cb) => {
-    cb(apiData.btc5y);
+    cb(cache.btc5y);
   });
   socket.on("postStats5y", async (payload, cb) => {
-    cb(apiData.postStats5y);
+    cb(cache.postStats5y);
   });
 });
 
