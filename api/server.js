@@ -13,6 +13,7 @@ const logger = require("../utils/logger");
 const utils = require("../utils/misc");
 const PostStatistic = require("../models/PostStatistic");
 const TextEntry = require("../models/TextEntry");
+const ImageEntry = require("../models/ImageEntry");
 
 const pool = workerpool.pool(__dirname + "/worker.js");
 
@@ -96,6 +97,13 @@ async function get24hWordCloud() {
   } catch (e) {
     utils.handleError(e);
   }
+}
+
+async function getMostSpammedOpImages() {
+  const res = await ImageEntry.find({ totalEncounters: { $gt: 1 } })
+    .sort("-totalEncounters")
+    .limit(10);
+  return res;
 }
 
 async function getBtcHistory(timeframe) {
@@ -187,8 +195,16 @@ parentPort.on("message", async (msg) => {
     (await getAvgBasedness(Object.keys(currentThreads).map(Number))) ||
     cache.latestData.basedness;
   const btcPriceChange = (await getBtcHistory("24h")).change || btcPriceChange;
+  const mostSpammedOpImages =
+    (await getMostSpammedOpImages()) || mostSpammedOpImages;
 
-  cache.latestData = { activeThreads, ppm, basedness, btcPriceChange };
+  cache.latestData = {
+    activeThreads,
+    ppm,
+    basedness,
+    btcPriceChange,
+    mostSpammedOpImages,
+  };
   cache.wordCloud = (await get24hWordCloud()) || cache.wordCloud;
   io.emit("latestData", cache.latestData);
 
