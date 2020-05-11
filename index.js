@@ -135,7 +135,7 @@ async function main() {
   //run & schedule cleanups
   logger.info("Run & Schedule cleanups");
   cleanUp();
-  setInterval(cleanUp, 1000 * 60 * 60 * 24);
+  setInterval(cleanUp, 1000 * 60 * 60 * 1);
 
   process.on("SIGINT", function () {
     mongoose.connection.close(function () {
