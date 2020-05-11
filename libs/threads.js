@@ -189,7 +189,7 @@ function getActiveThreads(currentThreads) {
   const activeThreads = Object.keys(currentThreads)
     .map((id) => currentThreads[id])
     .filter((thread) => thread.time > (now - 1000 * 60 * 30) / 1000)
-    .filter((thread) => thread.replies > 5)
+    .filter((thread) => thread.replies >= 5)
     .sort((a, b) => {
       if (a.replies / (now / 1000 - a.time) > b.replies / (now / 1000 - b.time))
         return -1;
