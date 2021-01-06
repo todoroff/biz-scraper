@@ -15,7 +15,7 @@
     "@tensorflow-models/mobilenet": "^2.0.4",
     "@tensorflow-models/toxicity": "^1.2.2",
     "@tensorflow/tfjs-node": "^1.7.2",
-    "axios": "^0.19.2",
+    "axios": "^0.21.1",
     "colorthief": "^2.3.0",
     "cors": "^2.8.5",
     "dotenv": "^8.2.0",
